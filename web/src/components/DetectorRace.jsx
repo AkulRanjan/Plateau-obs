@@ -21,7 +21,7 @@ const LANES = [
     fire: TRIP_TURN,
     kind: "hit",
     verdict:
-      "Caught the plateau at turn 13. Left the batch job running, and the loop's rewording did not help it hide.",
+      "Caught the plateau at turn 13, and left the healthy batch job running. Not the fastest here — see the note below.",
     tip: (
       <>
         Embeds both halves of every turn and reads two dials: action similarity
@@ -88,9 +88,9 @@ const LANES = [
     name: "Lexical overlap",
     note: "agent-loop-detector · observation only",
     fire: RACE.lexical,
-    kind: "miss",
+    kind: "hit",
     verdict:
-      "Never tripped. Different words for the same non-answer read as new information to token overlap.",
+      "Caught it at turn 12 — one turn before Plateau. This loop repeats one byte-identical string, which is exactly what token overlap is built for.",
     tip: (
       <>
         <span className="text-ink">agent-loop-detector</span>. Its entry point is{" "}
@@ -212,20 +212,30 @@ export default function DetectorRace({ turn }) {
         <span
           className="rounded-md border px-2.5 py-1 font-mono text-[11px] tracking-[0.03em]"
           style={{
-            borderColor: "var(--color-cyan)",
-            color: "var(--color-cyan)",
-            background: "color-mix(in srgb, var(--color-cyan) 14%, transparent)",
+            borderColor: "var(--color-amber)",
+            color: "var(--color-amber)",
+            background: "color-mix(in srgb, var(--color-amber) 12%, transparent)",
           }}
         >
-          Plateau — right on both
+          our worst number, stated plainly
         </span>
         <span className="text-xs text-muted">
-          the only detector that spared the batch <b className="text-ink">and</b>{" "}
-          caught the reworded loop
+          on this trace a 2019-era token-overlap baseline beats us by a turn
         </span>
       </div>
 
       <p className="mt-1 font-mono text-[10px] leading-relaxed text-faint">
+        This loop repeats one byte-identical non-answer, which is the case exact
+        and lexical matching are built for — so lexical wins here, and we say so
+        rather than picking a trace that hides it. Plateau&rsquo;s claimed
+        advantage is on <span className="text-muted">paraphrased</span> stalls,
+        and the measured panel below shows that class is currently an{" "}
+        <span className="text-muted">open miss</span>. What this trace does show
+        is the counter-demo: the action-only ablation kills the healthy batch at
+        turn 9 and Plateau does not.
+      </p>
+
+      <p className="mt-1.5 font-mono text-[10px] leading-relaxed text-faint">
         Every fire turn above is computed by running these mechanisms over this
         trace (<span className="text-muted">src/lib/baselines.js</span>), not
         asserted. Hover any detector for what it actually reads, verified against
