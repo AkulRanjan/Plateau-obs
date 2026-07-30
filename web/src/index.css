@@ -14,7 +14,12 @@
 
   --color-ink: #e6f1f3;
   --color-muted: #88a6af;
-  --color-faint: #5a7982;
+  /* Lightened from the draft's #5a7982, which measured 3.32-3.99:1 against
+   * these surfaces — below the 4.5:1 bar for small text, and this token carries
+   * turn indices, axis labels and captions at 8.5-11px. #7b949b measures
+   * 4.84:1 at worst while staying a clear step below --color-muted.
+   * Enforced by scripts/contrast.mjs. */
+  --color-faint: #7b949b;
 
   --color-cyan: #25e0c8;
   --color-violet: #9e86ff;
