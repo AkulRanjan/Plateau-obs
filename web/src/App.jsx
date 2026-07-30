@@ -3,11 +3,12 @@ import { useEffect, useMemo } from "react";
 import AuroraBackground from "./components/AuroraBackground.jsx";
 import Controls from "./components/Controls.jsx";
 import GlassPanel, { PanelHead } from "./components/GlassPanel.jsx";
-import PlateauCurve from "./components/PlateauCurve.jsx";
+import Hero from "./components/Hero.jsx";
 import QuadrantMap, { Legend } from "./components/QuadrantMap.jsx";
 import StatusBar from "./components/StatusBar.jsx";
 import TelemetryFeed from "./components/TelemetryFeed.jsx";
 import { usePlayback } from "./hooks/usePlayback.js";
+import { useTripSequence } from "./hooks/useTripSequence.js";
 import { deriveState } from "./lib/deriveState.js";
 import { ACCENT, TRACE } from "./data/trace.js";
 
@@ -24,6 +25,11 @@ export default function App() {
     if (tripped) pause();
   }, [tripped, pause]);
 
+  // The one Anime.js timeline: marker drop, pill flinch, accent flash. It runs
+  // alongside the tokens ticker rather than before it — nothing is allowed to
+  // delay the payoff beat.
+  useTripSequence(tripped);
+
   const accent = ACCENT[S.state] || "var(--color-cyan)";
 
   return (
@@ -33,6 +39,18 @@ export default function App() {
       data-open={tripped ? "1" : "0"}
     >
       <AuroraBackground />
+
+      {/* Accent wash on trip. Owned by the Anime.js timeline; pointer-events
+          none and opacity 0 until it fires. */}
+      <div
+        data-plateau-flash
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-20 opacity-0"
+        style={{
+          background:
+            "radial-gradient(60% 40% at 50% 45%, var(--color-red), transparent 70%)",
+        }}
+      />
 
       <div className="relative z-10 mx-auto max-w-[1180px] px-5 py-8">
         <StatusBar state={S.state} />
@@ -51,14 +69,7 @@ export default function App() {
           onToggleFast={playback.toggleFast}
         />
 
-        {/* Hero copy + StatTicker land in the next commit. */}
-        <GlassPanel className="mb-4">
-          <PanelHead
-            label="signature"
-            sub="information gained per turn, accumulated"
-          />
-          <PlateauCurve rows={S.rows} tripTurn={S.tripTurn} />
-        </GlassPanel>
+        <Hero rows={S.rows} tripTurn={S.tripTurn} tripped={tripped} />
 
         <div className="grid gap-4 lg:grid-cols-2">
           <GlassPanel>
