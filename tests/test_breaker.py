@@ -10,14 +10,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from plateau.breaker import (
-    Breaker,
-    Decision,
-    EscapeVector,
-    Reading,
-    State,
-)
+from plateau.breaker import Breaker, Decision, State
 from plateau.calibrator import Calibrator
+from plateau.detector import Quadrant, Reading
 
 
 class CountingEncoder:
@@ -45,11 +40,11 @@ class CountingEncoder:
 
 
 def always_trip(action_sim, obs_novelty, calibrator) -> Reading:
-    return Reading(action_sim, obs_novelty, is_trip=True, quadrant="loop")
+    return Reading(action_sim, obs_novelty, quadrant=Quadrant.LOOP, is_trip=True)
 
 
 def never_trip(action_sim, obs_novelty, calibrator) -> Reading:
-    return Reading(action_sim, obs_novelty, is_trip=False, quadrant="progress")
+    return Reading(action_sim, obs_novelty, quadrant=Quadrant.EXPLORE, is_trip=False)
 
 
 def make_breaker(classify=never_trip, **kwargs) -> Breaker:
@@ -131,7 +126,7 @@ def test_t4_closed_to_open_emits_reason_and_escape_vector():
     assert decision.state is State.OPEN
     assert decision.allowed is False
     assert decision.reason
-    assert decision.escape_vector is not None
+    assert decision.message
     assert breaker.cooldown == breaker.cooldown_turns
     assert breaker._pretrip_window, "the window must be frozen at trip time"
 
@@ -232,8 +227,13 @@ def test_t8_backoff_is_capped_at_max_cooldown():
 # =============================================================================
 
 
-def test_i1_no_silent_stall_every_open_carries_reason_and_escape_vector():
-    """I1: every OPEN decision has a non-empty reason AND an escape vector."""
+def test_i1_no_silent_stall_message_carries_index_dials_and_a_route():
+    """I1, tightened per §7.
+
+    Every OPEN message must contain the turn index, BOTH dial readings, and
+    either an escape vector or the explicit no-progress statement. Non-empty is
+    no longer sufficient.
+    """
     breaker = make_breaker(cooldown_turns=2)
     warm_up(breaker)
 
@@ -245,12 +245,19 @@ def test_i1_no_silent_stall_every_open_carries_reason_and_escape_vector():
     open_decisions = [d for d in decisions if d.state is State.OPEN]
     assert open_decisions, "expected to observe OPEN decisions"
     for decision in open_decisions:
-        assert decision.reason, f"OPEN via transition {decision.transition} had no reason"
-        assert decision.escape_vector is not None, (
-            f"OPEN via transition {decision.transition} had no escape vector"
+        message = decision.message
+        transition = decision.transition
+        assert decision.reason, f"OPEN via transition {transition} had no reason"
+        assert message, f"OPEN via transition {transition} had no message"
+        assert "turn " in message, f"transition {transition}: no turn index"
+        assert "action_sim" in message, f"transition {transition}: no action dial"
+        assert "obs_novelty" in message, f"transition {transition}: no novelty dial"
+        has_route = "Escape:" in message
+        has_no_progress = "no productive path" in message or "no prior result" in message
+        assert has_route or has_no_progress, (
+            f"transition {transition}: neither an escape vector nor a no-progress "
+            f"statement -- {message!r}"
         )
-        assert not decision.escape_vector.is_empty()
-        assert decision.escape_vector.render().strip()
 
 
 def test_i2_open_is_free_zero_encoder_calls_while_open():

@@ -36,7 +36,9 @@ from typing import Callable, Protocol, Sequence
 import numpy as np
 
 from plateau.calibrator import Calibrator
-from plateau.encoder import cosine, max_cosine
+from plateau.detector import Quadrant, Reading
+from plateau.encoder import max_cosine
+from plateau.escape import EscapeTracker
 
 # --- Fixed parameters (§5). ---------------------------------------------------
 TRIP_AFTER = 3
@@ -60,23 +62,6 @@ class State(str, Enum):
     HALF_OPEN = "HALF_OPEN"
 
 
-@dataclass(frozen=True)
-class Reading:
-    """One turn's two dials, plus §6's verdict on them.
-
-    Attributes:
-        action_sim: max cosine similarity of this action against the window.
-        obs_novelty: ``1 - max cosine`` of this observation against the window.
-        is_trip: whether §6 classifies this reading as a trip-worthy quadrant.
-        quadrant: §6's label, carried through for the reason string.
-    """
-
-    action_sim: float
-    obs_novelty: float
-    is_trip: bool
-    quadrant: str = ""
-
-
 class Classifier(Protocol):
     """§6's four-quadrant classifier. Injected, not implemented here."""
 
@@ -86,40 +71,19 @@ class Classifier(Protocol):
 
 
 @dataclass(frozen=True)
-class EscapeVector:
-    """Guidance handed back to the agent when the breaker opens.
-
-    PROVISIONAL CONTENT. §8 invariant I1 requires this to be non-empty; the
-    *format* is §7's business and §7 has not been received. The fields below are
-    derived from state the breaker already holds, so nothing here is invented
-    data -- but the shape may change when §7 lands.
-    """
-
-    quadrant: str
-    tried_actions: tuple[str, ...]
-    observed_novelty: float
-    suggestion: str
-
-    def is_empty(self) -> bool:
-        return not self.suggestion or not self.quadrant
-
-    def render(self) -> str:
-        tried = "; ".join(self.tried_actions) if self.tried_actions else "(none recorded)"
-        return (
-            f"[plateau:{self.quadrant}] {self.suggestion} "
-            f"Recent observation novelty {self.observed_novelty:.3f}. "
-            f"Already tried: {tried}"
-        )
-
-
-@dataclass(frozen=True)
 class Decision:
-    """What the breaker decided about one turn."""
+    """What the breaker decided about one turn.
+
+    Attributes:
+        message: the §7 message. On an OPEN decision this carries the turn index,
+            both dial readings, and either an escape vector or the explicit
+            no-progress statement (invariant I1, tightened).
+    """
 
     allowed: bool
     state: State
     reason: str = ""
-    escape_vector: EscapeVector | None = None
+    message: str = ""
     reading: Reading | None = None
     is_probe: bool = False
     embedded: bool = False
@@ -168,7 +132,12 @@ class Breaker:
         self.state = State.CALIBRATING
         self.hits = 0
         self.cooldown = 0
+        self.turn_index = 0
         self.window: deque[_WindowEntry] = deque(maxlen=window_size)
+
+        #: §7. Records every turn in every state, including CALIBRATING, because
+        #: the most informative action often precedes the breaker being armed.
+        self.escape = EscapeTracker(novelty_floor=self.calibrator.novelty_floor)
 
         #: Frozen at trip time. The probe is judged against this, not against a
         #: window the probe itself has already modified.
@@ -180,7 +149,8 @@ class Breaker:
         #: Set at trip time (transition 4), read while OPEN. I1 requires both to
         #: be non-empty whenever the state is OPEN.
         self._open_reason: str = ""
-        self._open_escape: EscapeVector | None = None
+        self._open_message: str = ""
+        self._open_reading: Reading | None = None
 
     # -- helpers --------------------------------------------------------------
 
@@ -201,25 +171,6 @@ class Breaker:
     def _record(self, transition: int) -> None:
         self.transitions.append(transition)
 
-    def _build_escape_vector(self, reading: Reading) -> EscapeVector:
-        tried = tuple(entry.action_text for entry in self.window)
-        if reading.quadrant == "thrash":
-            suggestion = (
-                "Actions are varying but nothing new is being learned. "
-                "Stop exploring and re-read what has already been returned."
-            )
-        else:
-            suggestion = (
-                "The same question is being asked repeatedly and the answers are "
-                "not new. Change the source or the approach, not the wording."
-            )
-        return EscapeVector(
-            quadrant=reading.quadrant or "loop",
-            tried_actions=tried,
-            observed_novelty=reading.obs_novelty,
-            suggestion=suggestion,
-        )
-
     # -- the machine ----------------------------------------------------------
 
     def observe(self, action_text: str, observation_text: str) -> Decision:
@@ -238,7 +189,8 @@ class Breaker:
                     allowed=False,
                     state=State.OPEN,
                     reason=self._open_reason,
-                    escape_vector=self._open_escape,
+                    message=self._open_message,
+                    reading=self._open_reading,
                     embedded=False,
                     transition=5,
                 )
@@ -249,7 +201,8 @@ class Breaker:
                 allowed=True,
                 state=State.HALF_OPEN,
                 reason="cooldown elapsed; allowing one probe",
-                escape_vector=self._open_escape,
+                message=self._open_message,
+                reading=self._open_reading,
                 is_probe=True,
                 embedded=False,
                 transition=6,
@@ -264,6 +217,16 @@ class Breaker:
             # computed only to feed the calibrator on success -- it plays no part
             # in the pass/fail decision.
             action_sim, probe_novelty = self._dials(action_vec, obs_vec, self._pretrip_window)
+
+            probe_reading = self.classify(action_sim, probe_novelty, self.calibrator)
+            # §7: the probe is a turn like any other and is recorded.
+            self.escape.record(
+                turn_index=self.turn_index,
+                action_text=action_text,
+                obs_novelty=probe_novelty,
+                state=State.HALF_OPEN.value,
+            )
+            self.turn_index += 1
 
             if probe_novelty >= self.novelty_floor:
                 # Transition 7: recovered. Clear the window, seed with the probe,
@@ -281,7 +244,7 @@ class Breaker:
                     allowed=True,
                     state=State.CLOSED,
                     reason=f"probe produced new information (novelty {probe_novelty:.3f})",
-                    reading=Reading(action_sim, probe_novelty, is_trip=False, quadrant="recovered"),
+                    reading=probe_reading,
                     is_probe=True,
                     embedded=True,
                     transition=7,
@@ -292,16 +255,19 @@ class Breaker:
             self.cooldown = min(
                 int(round(max(self.cooldown, 1) * self.backoff)), self.max_cooldown
             )
+            self._open_reading = probe_reading
+            self._open_reason = (
+                f"probe produced no new information "
+                f"(novelty {probe_novelty:.3f} < floor {self.novelty_floor})"
+            )
+            self._open_message = self.escape.message(probe_reading)
             self._record(8)
             return Decision(
                 allowed=False,
                 state=State.OPEN,
-                reason=(
-                    f"probe produced no new information "
-                    f"(novelty {probe_novelty:.3f} < floor {self.novelty_floor})"
-                ),
-                escape_vector=self._open_escape,
-                reading=Reading(action_sim, probe_novelty, is_trip=True, quadrant="loop"),
+                reason=self._open_reason,
+                message=self._open_message,
+                reading=probe_reading,
                 is_probe=True,
                 embedded=True,
                 transition=8,
@@ -310,6 +276,16 @@ class Breaker:
         # --- transitions 1-4: CALIBRATING and CLOSED ---
         action_sim, obs_novelty = self._dials(action_vec, obs_vec, self.window)
         reading = self.classify(action_sim, obs_novelty, self.calibrator)
+
+        # §7: record BEFORE any state decision, so CALIBRATING turns count. The
+        # most informative action in a run is often one of the first.
+        self.escape.record(
+            turn_index=self.turn_index,
+            action_text=action_text,
+            obs_novelty=obs_novelty,
+            state=self.state.value,
+        )
+        self.turn_index += 1
 
         if self.state is State.CALIBRATING:
             # Transition 1: learn, never trip.
@@ -347,16 +323,16 @@ class Breaker:
             self.hits = 0
 
         if self.hits >= self.trip_after:
-            # Transition 4: open. Freeze the window, emit reason + escape vector.
+            # Transition 4: open. Freeze the window, emit reason + §7 message.
             self._pretrip_window = list(self.window)
-            escape = self._build_escape_vector(reading)
             self._open_reason = (
-                f"{self.hits} consecutive {reading.quadrant or 'trip'} readings; "
+                f"{self.hits} consecutive {reading.quadrant.value} readings; "
                 f"action_sim {reading.action_sim:.3f} vs ceiling "
                 f"{self.calibrator.sim_ceiling:.3f}, novelty {reading.obs_novelty:.3f} "
                 f"vs floor {self.novelty_floor}"
             )
-            self._open_escape = escape
+            self._open_reading = reading
+            self._open_message = self.escape.message(reading)
             self.state = State.OPEN
             self.cooldown = self.cooldown_turns
             self.trip_count += 1
@@ -365,7 +341,7 @@ class Breaker:
                 allowed=False,
                 state=State.OPEN,
                 reason=self._open_reason,
-                escape_vector=escape,
+                message=self._open_message,
                 reading=reading,
                 embedded=True,
                 transition=4,
