@@ -85,6 +85,72 @@ check(
   `batch turns below the novelty floor: ${batchBelowFloor.map((r) => r.turn).join(", ")}`
 );
 
+// 7. Position must agree with colour. Every dot's quadrant, recomputed from its
+//    plotted (novelty, similarity) coordinate, must match the label deriveState
+//    gave that turn. A disagreement means a dot sits in a region that
+//    contradicts its own colour, which breaks the chart's entire claim.
+const geom = await import(resolve(HERE, "../src/lib/quadrantGeometry.js"));
+const allRows = deriveState(TRACE.length - 1).rows;
+const mismatched = [];
+const outOfBounds = [];
+
+for (const r of allRows) {
+  const implied = geom.quadrantAt(r.nov, r.sim, r.ceiling);
+  if (implied !== r.quadrant) {
+    mismatched.push(
+      `turn ${r.turn}: plotted position implies '${implied}' but deriveState says '${r.quadrant}'`
+    );
+  }
+  const x = geom.xOfNovelty(r.nov);
+  const y = geom.yOfSimilarity(r.sim);
+  const lo = geom.PAD;
+  const hi = geom.PAD + geom.IW;
+  if (x < lo || x > hi || y < lo || y > hi) {
+    outOfBounds.push(
+      `turn ${r.turn}: (${x.toFixed(1)}, ${y.toFixed(1)}) outside the plot box [${lo}, ${hi}]`
+    );
+  }
+}
+
+check(mismatched.length === 0, `quadrant/position disagreement:\n      ${mismatched.join("\n      ")}`);
+check(outOfBounds.length === 0, `dots outside the plot box:\n      ${outOfBounds.join("\n      ")}`);
+
+// 8. And the plotting itself must be invertible. Recovering (novelty,
+//    similarity) back out of the plotted pixel must return the turn's real
+//    readings. This is what actually catches an inverted or mis-scaled axis —
+//    check 7 only proves deriveState agrees with itself.
+const EPS = 1e-9;
+const roundTripFailures = [];
+for (const r of allRows) {
+  const x = geom.xOfNovelty(r.nov);
+  const y = geom.yOfSimilarity(r.sim);
+  const novBack = (x - geom.PAD) / geom.IW;
+  const simBack = 1 - (y - geom.PAD) / geom.IW;
+  if (Math.abs(novBack - r.nov) > EPS || Math.abs(simBack - r.sim) > EPS) {
+    roundTripFailures.push(
+      `turn ${r.turn}: plotted (${x.toFixed(2)}, ${y.toFixed(2)}) inverts to ` +
+        `nov ${novBack.toFixed(4)} / sim ${simBack.toFixed(4)}, ` +
+        `but the reading is nov ${r.nov} / sim ${r.sim}`
+    );
+  }
+}
+check(
+  roundTripFailures.length === 0,
+  `plotted coordinates do not invert to the real readings:\n      ${roundTripFailures.join("\n      ")}`
+);
+
+// Orientation, stated as an explicit expectation rather than inferred: higher
+// novelty must plot further right, higher similarity must plot higher (smaller
+// y). An axis silently flipping would otherwise still round-trip.
+check(
+  geom.xOfNovelty(0.9) > geom.xOfNovelty(0.1),
+  "novelty axis is inverted — higher novelty must plot further right"
+);
+check(
+  geom.yOfSimilarity(0.9) < geom.yOfSimilarity(0.1),
+  "similarity axis is inverted — higher similarity must plot higher (smaller y)"
+);
+
 // --- report ----------------------------------------------------------------
 if (problems.length) {
   console.error(`\ndemo CONTRACT FAILED — ${problems.length} problem(s):\n`);
@@ -100,5 +166,6 @@ console.log(
     `\n  stays open      : yes, through the end of the trace` +
     `\n  turns spared    : ${turnsSpared} vs the step-cap of ${STEP_CAP}` +
     `\n  tokens saved    : ${(turnsSpared * TOKENS_PER_TURN).toLocaleString("en-US")}` +
-    `\n  batch protected : ${batchRows.length} turns, sim ${batchSims} — all above the floor\n`
+    `\n  batch protected : ${batchRows.length} turns, sim ${batchSims} — all above the floor` +
+    `\n  dot integrity   : ${allRows.length} turns, position agrees with quadrant, all in bounds\n`
 );

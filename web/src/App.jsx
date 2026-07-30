@@ -3,7 +3,10 @@ import { useEffect, useMemo } from "react";
 import AuroraBackground from "./components/AuroraBackground.jsx";
 import Controls from "./components/Controls.jsx";
 import GlassPanel, { PanelHead } from "./components/GlassPanel.jsx";
+import PlateauCurve from "./components/PlateauCurve.jsx";
+import QuadrantMap, { Legend } from "./components/QuadrantMap.jsx";
 import StatusBar from "./components/StatusBar.jsx";
+import TelemetryFeed from "./components/TelemetryFeed.jsx";
 import { usePlayback } from "./hooks/usePlayback.js";
 import { deriveState } from "./lib/deriveState.js";
 import { ACCENT, TRACE } from "./data/trace.js";
@@ -48,16 +51,13 @@ export default function App() {
           onToggleFast={playback.toggleFast}
         />
 
-        {/* The data views land in the next commits. */}
+        {/* Hero copy + StatTicker land in the next commit. */}
         <GlassPanel className="mb-4">
           <PanelHead
             label="signature"
             sub="information gained per turn, accumulated"
           />
-          <p className="font-mono text-xs text-muted">
-            curve · turn {step < 0 ? "—" : step + 1} · state {S.state}
-            {S.tripTurn ? ` · tripped at turn ${S.tripTurn}` : ""}
-          </p>
+          <PlateauCurve rows={S.rows} tripTurn={S.tripTurn} />
         </GlassPanel>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -66,17 +66,25 @@ export default function App() {
               label="semantic space"
               sub="every turn placed by what it repeats × what it learned"
             />
-            <p className="font-mono text-xs text-muted">
-              quadrant map · ceiling {S.ceiling.toFixed(2)} ·{" "}
-              {S.warm ? "warm" : "cold"}
-            </p>
+            <QuadrantMap rows={S.rows} ceiling={S.ceiling} warm={S.warm} />
+            <Legend />
           </GlassPanel>
 
-          <GlassPanel>
-            <PanelHead label="telemetry" sub="live turn stream" />
-            <p className="font-mono text-xs text-muted">
-              {S.rows.length} turn(s) revealed · n={S.n} · streak={S.streak}
-            </p>
+          <GlassPanel className="flex flex-col">
+            <PanelHead
+              label="telemetry"
+              sub="live turn stream"
+              right={
+                <span className="font-mono text-[10px] text-faint">
+                  n={S.n} · streak={S.streak}
+                </span>
+              }
+            />
+            <TelemetryFeed
+              rows={S.rows}
+              tripped={tripped}
+              tripTurn={S.tripTurn}
+            />
           </GlassPanel>
         </div>
       </div>
