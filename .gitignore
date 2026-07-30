@@ -48,3 +48,5 @@ runs/
 *.log
 
 web/.visual/
+
+demo/run-*.jsonl

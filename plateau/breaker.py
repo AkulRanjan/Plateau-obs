@@ -172,7 +172,10 @@ class Breaker:
     def _dials(self, action_vec, obs_vec, window: Sequence[_WindowEntry]):
         action_sim = max_cosine(action_vec, [entry.action_vec for entry in window])
         obs_sim = max_cosine(obs_vec, [entry.obs_vec for entry in window])
-        return action_sim, 1.0 - obs_sim
+        # Clamped, matching Detector.dials: float error on an identical pair
+        # pushes cosine a hair above 1.0 and renders novelty as '-0.000',
+        # which showed up in the live demo's §7 messages on screen.
+        return action_sim, max(0.0, 1.0 - obs_sim)
 
     def _record(self, transition: int) -> None:
         self.transitions.append(transition)
