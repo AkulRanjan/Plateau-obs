@@ -3,13 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Plateau jury console — replay of one autonomous-agent run, halting at the plateau.",
+  "description": "Plateau jury console \u2014 replay of one autonomous-agent run, halting at the plateau.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "parity": "node scripts/parity.mjs",
-    "extract-metrics": "node scripts/extract_metrics.mjs"
+    "contract": "node scripts/contract.mjs",
+    "check": "npm run parity && npm run contract && npm run render && npm run build",
+    "extract-metrics": "node scripts/extract_metrics.mjs",
+    "render": "vite build --ssr scripts/render-entry.jsx --outDir dist-ssr --logLevel error && node dist-ssr/render-entry.js"
   },
   "dependencies": {
     "@floating-ui/react": "0.27.20",

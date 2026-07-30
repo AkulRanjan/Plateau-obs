@@ -161,6 +161,22 @@ body {
     backdrop-filter: blur(14px) saturate(1.15);
   }
 
+  /* ------------------------------------------------------------------- led --
+   * The state indicator. CSS-owned: it is decorative, it runs continuously,
+   * and neither animation library should be spending a frame budget on it.
+   * ------------------------------------------------------------------------ */
+  .pl-led {
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pl-pulse 1.6s ease-in-out infinite;
+  }
+
+  /* OPEN is the one state that gets an insistent treatment, because a halted
+   * run has to read as halted from the back of a room. */
+  [data-plateau-pill][data-state="open"] {
+    animation: pl-alarm 0.9s steps(2) infinite;
+  }
+
   .pl-grid-l {
     stroke: var(--color-line-soft);
     stroke-width: 1;
@@ -255,6 +271,22 @@ body {
   50% {
     transform: translate3d(5vmax, -5vmax, 0) scale(1.15);
     opacity: 0.2;
+  }
+}
+
+@keyframes pl-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes pl-alarm {
+  50% {
+    background: color-mix(in srgb, var(--color-red) 22%, transparent);
   }
 }
 
