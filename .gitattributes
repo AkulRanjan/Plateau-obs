@@ -1,0 +1,8 @@
+# Rule 3: two harness runs must produce byte-identical metrics.json. Let Git
+# normalise text in the repo so a Windows checkout and a Linux checkout compare
+# equal, and keep metrics.json strictly LF so its bytes are platform-invariant.
+* text=auto eol=lf
+metrics.json text eol=lf
+*.png binary
+*.gif binary
+*.mp4 binary
