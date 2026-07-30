@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import AuroraBackground from "./components/AuroraBackground.jsx";
 import Controls from "./components/Controls.jsx";
@@ -6,12 +6,17 @@ import DetectorRace from "./components/DetectorRace.jsx";
 import GlassPanel, { PanelHead } from "./components/GlassPanel.jsx";
 import Hero from "./components/Hero.jsx";
 import QuadrantMap, { Legend } from "./components/QuadrantMap.jsx";
+import RecoveryStrip from "./components/RecoveryStrip.jsx";
 import StatusBar from "./components/StatusBar.jsx";
 import TelemetryFeed from "./components/TelemetryFeed.jsx";
 import { usePlayback } from "./hooks/usePlayback.js";
 import { useTripSequence } from "./hooks/useTripSequence.js";
 import { deriveState } from "./lib/deriveState.js";
 import { ACCENT, TRACE } from "./data/trace.js";
+import { EPILOGUE } from "./data/epilogue.js";
+
+/** Long enough for the tokens-saved spring to settle before Recover appears. */
+const TICKER_SETTLE_MS = 1500;
 
 export default function App() {
   const playback = usePlayback({ length: TRACE.length });
@@ -30,6 +35,29 @@ export default function App() {
   // alongside the tokens ticker rather than before it — nothing is allowed to
   // delay the payoff beat.
   useTripSequence(tripped);
+
+  // --- recovery (claim 4) -------------------------------------------------
+  // Deliberately manual. The demo contract is mount -> play -> halt -> ticker,
+  // and recovery must not compete with any part of it: the control only appears
+  // once the tokens-saved spring has had time to land, and it never advances on
+  // its own.
+  const [recoveryStep, setRecoveryStep] = useState(-1);
+  const [recoveryReady, setRecoveryReady] = useState(false);
+
+  useEffect(() => {
+    if (!tripped) {
+      setRecoveryReady(false);
+      setRecoveryStep(-1);
+      return;
+    }
+    const id = setTimeout(() => setRecoveryReady(true), TICKER_SETTLE_MS);
+    return () => clearTimeout(id);
+  }, [tripped]);
+
+  const advanceRecovery = useCallback(
+    () => setRecoveryStep((s) => Math.min(EPILOGUE.length - 1, s + 1)),
+    []
+  );
 
   const accent = ACCENT[S.state] || "var(--color-cyan)";
 
@@ -107,6 +135,14 @@ export default function App() {
           />
           <DetectorRace turn={step} />
         </GlassPanel>
+
+        {tripped && (
+          <RecoveryStrip
+            step={recoveryStep}
+            ready={recoveryReady}
+            onAdvance={advanceRecovery}
+          />
+        )}
 
         <footer className="mt-4 flex flex-wrap justify-between gap-3.5 pt-1 font-mono text-[11px] text-faint">
           <span>
