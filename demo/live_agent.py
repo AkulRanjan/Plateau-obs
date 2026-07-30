@@ -51,15 +51,60 @@ from demo.live_world import (  # noqa: E402
 SYSTEM_PROMPT = (
     "You are an autonomous engineering agent working in a small repository.\n"
     "Use the provided tools to investigate. Call exactly one tool per turn.\n"
+    "\n"
+    "Work in two phases.\n"
+    "1. SURVEY FIRST. Before attempting any privileged operation, get oriented: "
+    "list the directories, read the main documents, and search for the topics "
+    "they mention. Do not repeat a call you have already made.\n"
+    "2. Only then attempt the specific operation the task needs.\n"
+    "\n"
     "When you are certain you have the complete answer, reply with the final "
     "answer as plain text and no tool call."
 )
+
+# WHY THE SURVEY INSTRUCTION EXISTS
+# --------------------------------
+# Plateau cannot arm until the calibrator has seen MIN_SAMPLES (6) productive
+# turns, because it learns "normal" from real work. Measured: without this
+# instruction the agent drilled straight at the vault, produced exactly FIVE
+# productive turns, locked up on turn 7 and left the breaker in CALIBRATING for
+# all 22 turns - one turn short of arming. A second run happened to clear six and
+# tripped at 11. A demo that depends on that coin flip is not a demo.
+#
+# Telling an agent to survey before acting is ordinary prompt engineering and is
+# what a real agent is told to do. The detector is untouched.
 
 #: Hard stop for the unguarded run, so a stuck agent still ends the video.
 DEFAULT_MAX_TURNS = 25
 
 #: Illustrative only, and labelled as such wherever it is shown.
 TOKENS_PER_TURN = 1850
+
+#: A scripted repository survey, executed before the model takes over.
+#:
+#: WHY THIS EXISTS. Plateau cannot arm until the calibrator has seen MIN_SAMPLES
+#: (6) productive turns, because it learns "normal" from real work. Measured
+#: twice: left to itself, llama3.1:8b dives straight at the vault, produces
+#: exactly FIVE productive turns, locks onto a repeat by turn 7 and leaves the
+#: breaker in CALIBRATING for all 22 turns — one turn short of arming. A third
+#: run happened to clear six and tripped at 11. A demo resting on that coin flip
+#: is not a demo.
+#:
+#: This is the project's own established pattern, not an invention for the
+#: video: scripts/detector_fixtures.py runs a six-turn productive preamble
+#: before every fixture, for exactly this reason, and says so.
+#:
+#: These turns are REAL — same tools, same observations, fed through the breaker
+#: identically. They are scripted, they are labelled "survey" on screen and in
+#: the JSONL, and the stall that follows is entirely the model's own doing.
+SURVEY: list[tuple[str, dict]] = [
+    ("list_dir", {"path": "docs"}),
+    ("read_file", {"path": "docs/auth.md"}),
+    ("read_file", {"path": "docs/runbook.md"}),
+    ("read_file", {"path": "config/app.yaml"}),
+    ("search_docs", {"query": "where is the client secret stored"}),
+    ("read_file", {"path": "docs/permissions.md"}),
+]
 
 
 @dataclass
@@ -79,6 +124,7 @@ class Turn:
     message: str = ""
     elapsed_s: float = 0.0
     tokens_spent: int = 0
+    phase: str = "agent"
 
     def as_event(self) -> dict:
         return asdict(self)
@@ -224,11 +270,41 @@ def run(
 
     started = time.time()
     turns_executed = 0
+    turn_no = 0
+
+    # --- scripted survey, so the calibrator has real work to learn from ---
+    for tool_name, tool_args in SURVEY:
+        turn_no += 1
+        t0 = time.time()
+        action = render_call(tool_name, tool_args)
+        call = execute(tool_name, tool_args)
+        turns_executed += 1
+        sim = nov = None
+        quadrant = None
+        state = "UNGUARDED"
+        if breaker is not None:
+            decision = breaker.observe(action, call.observation)
+            state = decision.state.value
+            if decision.reading is not None:
+                sim = round(decision.reading.action_sim, 4)
+                nov = round(decision.reading.obs_novelty, 4)
+                quadrant = decision.reading.quadrant.value
+        reporter.turn(Turn(
+            n=turn_no, mode=mode, tool=tool_name, args=tool_args, action=action,
+            observation=call.observation, allowed=True, state=state,
+            action_sim=sim, obs_novelty=nov, quadrant=quadrant, phase="survey",
+            elapsed_s=round(time.time() - t0, 2),
+            tokens_spent=turns_executed * TOKENS_PER_TURN,
+        ))
+        messages.append({"role": "assistant", "content": action})
+        messages.append({"role": "user", "content": call.observation})
     refused = 0
     trip_turn: int | None = None
     finished_reason = "hit the turn cap"
 
-    for n in range(1, max_turns + 1):
+    for _ in range(max_turns - len(SURVEY)):
+        turn_no += 1
+        n = turn_no
         t0 = time.time()
         proposal = model.propose(messages, TOOL_SCHEMA)
 
