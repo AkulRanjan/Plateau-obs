@@ -26,6 +26,13 @@ venv/
 .coverage
 htmlcov/
 
+# --- Frontend (web/) ---------------------------------------------------------
+# package-lock.json IS committed: the demo depends on an exact, reproducible
+# dependency tree and every version is pinned without a range.
+web/node_modules/
+web/dist/
+web/.vite/
+
 # --- Editors / OS ------------------------------------------------------------
 .vscode/
 .idea/

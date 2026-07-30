@@ -1,0 +1,30 @@
+{
+  "name": "plateau-console",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Plateau jury console — replay of one autonomous-agent run, halting at the plateau.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "parity": "node scripts/parity.mjs",
+    "extract-metrics": "node scripts/extract_metrics.mjs"
+  },
+  "dependencies": {
+    "@floating-ui/react": "0.27.20",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/space-grotesk": "5.3.0",
+    "animejs": "4.5.0",
+    "framer-motion": "12.43.0",
+    "lucide-react": "1.28.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@vitejs/plugin-react": "6.0.5",
+    "tailwindcss": "4.3.3",
+    "vite": "8.1.5"
+  }
+}
