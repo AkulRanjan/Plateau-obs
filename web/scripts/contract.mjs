@@ -151,6 +151,51 @@ check(
   "similarity axis is inverted — higher similarity must plot higher (smaller y)"
 );
 
+// 9. The detector race must report computed results, and those results are the
+//    demo's actual argument. Each one is asserted so a trace edit cannot
+//    silently invert the story the panel tells.
+const bl = await import(resolve(HERE, "../src/lib/baselines.js"));
+const race = bl.runAll(TRACE);
+
+// The paraphrase claim: lexical and exact matching must MISS this loop. If a
+// later edit reverts the observations to literal repeats, lexical starts firing
+// before Plateau and the panel quietly contradicts the pitch.
+check(
+  race.lexical === null,
+  `agent-loop-detector (lexical Jaccard) fires at turn ${race.lexical}. The loop ` +
+    `observations must be paraphrases, not repeats — otherwise a lexical ` +
+    `baseline out-detects Plateau and the paraphrase claim is false on this trace.`
+);
+check(
+  race.exactMatch === null,
+  `exact-match (OpenHands) fires at turn ${race.exactMatch}; expected never on a paraphrased loop`
+);
+check(
+  race.exactArgs === null,
+  `exact-args debounce fires at turn ${race.exactArgs}; expected never — the arguments differ every turn`
+);
+check(
+  race.stepCap === null,
+  `step-cap fires at turn ${race.stepCap}; expected never within a ${TRACE.length}-turn trace`
+);
+
+// The counter-demo: the action-only ablation must false-trip on healthy batch
+// work that full Plateau leaves running.
+const ablation = race.similarityOnly2;
+check(ablation !== null, "the similarity-only ablation never fires — the counter-demo needs it to");
+if (ablation !== null) {
+  const ablationRow = allRows.find((r) => r.turn === ablation);
+  check(
+    ablationRow?.phase === "batch",
+    `the similarity-only ablation fires at turn ${ablation} (${ablationRow?.phase} phase); ` +
+      `the counter-demo requires it to false-trip during the BATCH phase`
+  );
+  check(
+    ablation < TRIP_TURN,
+    `the ablation fires at ${ablation}, not before Plateau's ${TRIP_TURN} — it must be the early false alarm`
+  );
+}
+
 // --- report ----------------------------------------------------------------
 if (problems.length) {
   console.error(`\ndemo CONTRACT FAILED — ${problems.length} problem(s):\n`);
@@ -167,5 +212,7 @@ console.log(
     `\n  turns spared    : ${turnsSpared} vs the step-cap of ${STEP_CAP}` +
     `\n  tokens saved    : ${(turnsSpared * TOKENS_PER_TURN).toLocaleString("en-US")}` +
     `\n  batch protected : ${batchRows.length} turns, sim ${batchSims} — all above the floor` +
-    `\n  dot integrity   : ${allRows.length} turns, position agrees with quadrant, all in bounds\n`
+    `\n  dot integrity   : ${allRows.length} turns, position agrees with quadrant, all in bounds` +
+    `\n  race (computed) : Plateau ${TRIP_TURN} · ablation ${ablation} (batch, false trip) · ` +
+    `lexical/exact-match/exact-args/step-cap all never\n`
 );

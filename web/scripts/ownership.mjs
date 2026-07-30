@@ -2,7 +2,8 @@
  * Animation ownership check.
  *
  * The rule: one animation owner per element. Framer Motion owns the data views;
- * Anime.js owns only the trip timeline. Both libraries writing one node's
+ * Anime.js owns only the two timelines it is genuinely better at — the trip
+ * sequence and the staggered lane reveal. Both libraries writing one node's
  * transform is a bug, and it is the kind of bug that shows up as jitter on a
  * projector rather than as an error in a console.
  *
@@ -10,8 +11,9 @@
  * introduced by editing a component, not by running it:
  *
  *   1. Every node Anime.js targets must NOT be a <motion.*> element.
- *   2. Anime.js must only be imported by its one designated hook.
- *   3. The selectors that hook uses must match the attributes actually in the
+ *   2. Anime.js may only be imported by its designated hooks, never by a
+ *      component.
+ *   3. The selectors those hooks use must match the attributes actually in the
  *      markup — a renamed attribute would silently no-op.
  *
  *   npm run ownership
@@ -23,11 +25,25 @@ import { dirname, join, relative, resolve } from "node:path";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = resolve(HERE, "../src");
 
-/** The only module allowed to import animejs. */
-const ANIME_OWNER = "hooks/useTripSequence.js";
+/**
+ * The only modules allowed to import animejs.
+ *
+ * Anime is confined to purpose-built hooks. It must never be imported by a
+ * component, because that is how a component ends up with both libraries
+ * writing the same node — the exact failure this check exists to prevent.
+ */
+const ANIME_OWNERS = ["hooks/useLaneReveal.js", "hooks/useTripSequence.js"];
 
-/** Attributes the Anime.js timeline targets. */
-const ANIME_ATTRS = ["tripmarker", "pill", "flash"];
+/**
+ * Attributes Anime.js targets, and which hook owns each.
+ * Every one of these must sit on a plain element, never a <motion.*>.
+ */
+const ANIME_ATTRS = {
+  tripmarker: "hooks/useTripSequence.js",
+  pill: "hooks/useTripSequence.js",
+  flash: "hooks/useTripSequence.js",
+  lane: "hooks/useLaneReveal.js",
+};
 
 function walk(dir) {
   const out = [];
@@ -62,7 +78,9 @@ for (const file of files) {
   let m;
   while ((m = tagRe.exec(src)) !== null) {
     const [, tagName, attrs] = m;
-    const hit = ANIME_ATTRS.find((a) => attrs.includes(`data-plateau-${a}`));
+    const hit = Object.keys(ANIME_ATTRS).find((a) =>
+      attrs.includes(`data-plateau-${a}`)
+    );
     if (!hit) continue;
 
     taggedNodes += 1;
@@ -77,24 +95,27 @@ for (const file of files) {
   }
 }
 
+animeImporters = animeImporters.sort();
+const unexpected = animeImporters.filter((f) => !ANIME_OWNERS.includes(f));
 check(
-  animeImporters.length === 1 && animeImporters[0] === ANIME_OWNER,
-  `animejs must be imported by ${ANIME_OWNER} alone, but is imported by: ` +
-    `${animeImporters.join(", ") || "(nothing)"}`
+  unexpected.length === 0,
+  `animejs may only be imported by ${ANIME_OWNERS.join(" and ")}, but is also ` +
+    `imported by: ${unexpected.join(", ")}. Anime belongs in a purpose-built ` +
+    `hook, never in a component — that is how a node ends up with two owners.`
 );
 
-// --- 3. do the hook's selectors match the markup? ---
-const hookSrc = readFileSync(resolve(SRC, ANIME_OWNER), "utf8");
-for (const attr of ANIME_ATTRS) {
+// --- 3. do each hook's selectors match the markup? ---
+for (const [attr, owner] of Object.entries(ANIME_ATTRS)) {
   const selector = `[data-plateau-${attr}]`;
+  const hookSrc = readFileSync(resolve(SRC, owner), "utf8");
   check(
     hookSrc.includes(selector),
-    `${ANIME_OWNER} no longer queries ${selector}`
+    `${owner} no longer queries ${selector}`
   );
   check(
     foundAttrs.has(attr),
-    `no element in src/ carries data-plateau-${attr}, but ${ANIME_OWNER} ` +
-      `queries for it — the timeline step would silently no-op`
+    `no element in src/ carries data-plateau-${attr}, but ${owner} queries ` +
+      `for it — the timeline step would silently no-op`
   );
 }
 
@@ -108,7 +129,7 @@ if (problems.length) {
 console.log(
   `\nownership check OK` +
     `\n  files scanned   : ${files.length}` +
-    `\n  animejs importer: ${animeImporters[0]} (sole)` +
+    `\n  animejs importers: ${animeImporters.join(", ")}` +
     `\n  anime targets   : ${taggedNodes} node(s), none owned by Framer Motion` +
     `\n  attrs matched   : ${[...foundAttrs].map((a) => `data-plateau-${a}`).join(", ")}\n`
 );
