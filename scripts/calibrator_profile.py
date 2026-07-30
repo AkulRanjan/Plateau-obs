@@ -42,7 +42,6 @@ def profile(sims: list[float], novelty: float = 0.60) -> dict[str, object]:
         "sigma": round(cal.sigma, 6),
         "raw_ceiling": round(raw, 6),
         "sim_ceiling": round(cal.sim_ceiling, 6),
-        "thrash_floor": round(cal.thrash_floor, 6),
         "clamp_engaged": bool(raw > HARD_HI or raw < HARD_LO),
         "own_max_sim_exceeds_ceiling": bool(max(sims) > cal.sim_ceiling),
     }
@@ -51,12 +50,12 @@ def profile(sims: list[float], novelty: float = 0.60) -> dict[str, object]:
 def main() -> int:
     results = {name: profile(sims) for name, sims in PROFILES.items()}
 
-    print(f"{'profile':<22} {'mu':>8} {'sigma':>8} {'raw':>8} {'ceil':>8} {'thrash':>8} {'clamp':>6}")
+    print(f"{'profile':<22} {'mu':>8} {'sigma':>8} {'raw':>8} {'ceil':>8} {'clamp':>6}")
     print("-" * 76)
     for name, r in results.items():
         print(
             f"{name:<22} {r['mu']:>8.4f} {r['sigma']:>8.4f} {r['raw_ceiling']:>8.4f} "
-            f"{r['sim_ceiling']:>8.4f} {r['thrash_floor']:>8.4f} {str(r['clamp_engaged']):>6}"
+            f"{r['sim_ceiling']:>8.4f} {str(r['clamp_engaged']):>6}"
         )
 
     spread = results["batch_tight"]["sim_ceiling"] - results["research_open_ended"]["sim_ceiling"]

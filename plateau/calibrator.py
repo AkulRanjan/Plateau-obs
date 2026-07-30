@@ -21,7 +21,7 @@ Three further guards sit behind the gate:
 
 * a conservative warmup -- before ``MIN_SAMPLES`` productive turns the ceiling
   is a high fixed default, so an uncalibrated detector errs toward not tripping;
-* hard clamps -- the ceiling is confined to ``[0.55, 0.97]`` whatever the
+* hard clamps -- the ceiling is confined to ``[0.60, 0.92]`` whatever the
   statistics say, so no input stream can drive it to a degenerate value;
 * bounded drift -- once warm, updates are EWMA with a fixed ``ALPHA``, so a
   single turn can move the baseline by at most ``ALPHA`` of the residual.
@@ -76,22 +76,28 @@ NOVELTY_FLOOR = 0.30
 MIN_SAMPLES = 6
 
 #: Ceiling is mu + K_SIGMA * sigma.
-K_SIGMA = 2.0
+#:
+#: PROVISIONAL. Moved out of the fixed-parameter table and into the sweep. At 2.0
+#: the ceiling clamped at its upper bound on every measured profile, which made
+#: the paraphrase fixture unreachable (metrics.json -> fixture_diagnosis).
+K_SIGMA = 1.0
 
 #: EWMA weight once warm. Bounds per-turn movement (C5).
 ALPHA = 0.1
 
-#: Ceiling used during warmup. High on purpose: errs toward not tripping.
-CONSERVATIVE_DEFAULT = 0.90
+#: Ceiling used during warmup. Errs toward not tripping, but must still sit above
+#: the measured paraphrase similarity of 0.8927 -- at 0.90 it did not, so an
+#: uncalibrated detector could never see the very pattern it exists to catch.
+CONSERVATIVE_DEFAULT = 0.85
 
 #: Hard clamps on the similarity ceiling. Load-bearing, not decorative --
 #: a maximum-variance input stream drives the raw value past HARD_HI.
-HARD_LO = 0.55
-HARD_HI = 0.97
-
-#: Hard clamps on the thrash floor.
-THRASH_LO = 0.05
-THRASH_HI = 0.50
+#:
+#: HARD_HI is set from measurement, not taste: the paraphrase pair reads 0.8927
+#: (metrics.json -> gate1_premise) and must be able to clear the ceiling, so any
+#: bound at or above 0.8927 makes a reworded loop undetectable by construction.
+HARD_LO = 0.60
+HARD_HI = 0.92
 
 
 def clamp(value: float, lo: float, hi: float) -> float:
@@ -118,7 +124,6 @@ class CalibrationRecord:
     mu_after: float
     sigma_after: float
     sim_ceiling_after: float
-    thrash_floor_after: float
 
 
 @dataclass
@@ -138,8 +143,6 @@ class Calibrator:
     conservative_default: float = CONSERVATIVE_DEFAULT
     hard_lo: float = HARD_LO
     hard_hi: float = HARD_HI
-    thrash_lo: float = THRASH_LO
-    thrash_hi: float = THRASH_HI
 
     n: int = 0
     mu: float = 0.0
@@ -199,7 +202,6 @@ class Calibrator:
                 mu_after=self.mu,
                 sigma_after=self.sigma,
                 sim_ceiling_after=self.sim_ceiling,
-                thrash_floor_after=self.thrash_floor,
             )
         )
 
@@ -247,27 +249,26 @@ class Calibrator:
         """True once enough productive turns exist to trust the learned dials."""
         return self.n >= self.min_samples
 
-    # -- the two dials --------------------------------------------------------
+    # -- the one calibrated dial ----------------------------------------------
+    #
+    # There is no `thrash_floor`. It was removed after measurement: three
+    # genuinely different tools read action_sim 0.7397 against the window, so
+    # MiniLM has no low-similarity region for tool-call strings and `mu - k*sigma`
+    # cannot find a floor that does not exist. Thrash is now defined on the
+    # novelty axis alone -- see plateau/detector.py.
 
     @property
     def sim_ceiling(self) -> float:
-        """Action similarity at or above which a turn reads as repetitive."""
+        """Action similarity at or above which a turn reads as repetitive.
+
+        This does not decide whether to trip. It sets how much *evidence* a
+        stagnant turn carries: a stagnant turn above the ceiling is an
+        unambiguous loop, one below it is still stalled but less diagnostic.
+        """
         if not self.is_warm:
             return self.conservative_default
         raw = self.mu + self.k_sigma * self.sigma
         return clamp(raw, self.hard_lo, self.hard_hi)
-
-    @property
-    def thrash_floor(self) -> float:
-        """Action similarity at or below which a turn reads as thrashing.
-
-        Returns 0.0 during warmup: cosine similarity cannot fall below a floor
-        of zero in a way that trips, so thrash detection is disabled until the
-        baseline is trustworthy (C3).
-        """
-        if not self.is_warm:
-            return 0.0
-        return clamp(self.mu - self.k_sigma * self.sigma, self.thrash_lo, self.thrash_hi)
 
     # -- introspection --------------------------------------------------------
 
@@ -295,6 +296,5 @@ class Calibrator:
             "sigma": self.sigma,
             "is_warm": self.is_warm,
             "sim_ceiling": self.sim_ceiling,
-            "thrash_floor": self.thrash_floor,
             "novelty_floor": self.novelty_floor,
         }

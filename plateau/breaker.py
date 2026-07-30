@@ -41,7 +41,12 @@ from plateau.encoder import max_cosine
 from plateau.escape import EscapeTracker
 
 # --- Fixed parameters (§5). ---------------------------------------------------
-TRIP_AFTER = 3
+#: §6 (revised) owns the multi-turn accumulation, because TRIP_AFTER_LOOP and
+#: TRIP_AFTER_STALL apply to two different conditions and one counter cannot
+#: express both. The breaker therefore opens on the first reading whose is_trip
+#: is True, and this degenerates to 1. It stays a parameter so a test can force
+#: multi-reading behaviour when exercising row 3.
+TRIP_AFTER = 1
 WINDOW_SIZE = 8
 COOLDOWN_TURNS = 1
 
@@ -239,6 +244,11 @@ class Breaker:
                 )
                 self.cooldown = 0
                 self.calibrator.update(action_sim=action_sim, obs_novelty=probe_novelty)
+                # §8 row 7 resets hits. §6 holds the real counters, so clear
+                # those too or a stale loop_hits re-trips on the next turn (I4).
+                reset = getattr(self.classify, "__self__", None)
+                if reset is not None and hasattr(reset, "reset_hits"):
+                    reset.reset_hits()
                 self._record(7)
                 return Decision(
                     allowed=True,
@@ -326,7 +336,8 @@ class Breaker:
             # Transition 4: open. Freeze the window, emit reason + §7 message.
             self._pretrip_window = list(self.window)
             self._open_reason = (
-                f"{self.hits} consecutive {reading.quadrant.value} readings; "
+                f"loop_hits={reading.loop_hits} stall_hits={reading.stall_hits} "
+                f"({reading.quadrant.value}); "
                 f"action_sim {reading.action_sim:.3f} vs ceiling "
                 f"{self.calibrator.sim_ceiling:.3f}, novelty {reading.obs_novelty:.3f} "
                 f"vs floor {self.novelty_floor}"
