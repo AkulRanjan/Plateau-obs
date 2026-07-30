@@ -28,8 +28,9 @@ tested against a fake classifier without depending on §6.
 
 from __future__ import annotations
 
+import dataclasses
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Protocol, Sequence
 
@@ -176,6 +177,16 @@ class Breaker:
     def _record(self, transition: int) -> None:
         self.transitions.append(transition)
 
+    def _stamp(self, reading: Reading) -> Reading:
+        """Put the breaker's turn index on a reading.
+
+        The §6 detector only advances its own counter inside `evaluate()`. When
+        the breaker drives classification directly the detector never sees a
+        turn boundary, so its index stays at 0 and every §7 message would claim
+        "turn 0". The breaker owns the authoritative counter, so it stamps.
+        """
+        return dataclasses.replace(reading, turn_index=self.turn_index)
+
     # -- the machine ----------------------------------------------------------
 
     def observe(self, action_text: str, observation_text: str) -> Decision:
@@ -223,7 +234,9 @@ class Breaker:
             # in the pass/fail decision.
             action_sim, probe_novelty = self._dials(action_vec, obs_vec, self._pretrip_window)
 
-            probe_reading = self.classify(action_sim, probe_novelty, self.calibrator)
+            probe_reading = self._stamp(
+                self.classify(action_sim, probe_novelty, self.calibrator)
+            )
             # §7: the probe is a turn like any other and is recorded.
             self.escape.record(
                 turn_index=self.turn_index,
@@ -285,7 +298,7 @@ class Breaker:
 
         # --- transitions 1-4: CALIBRATING and CLOSED ---
         action_sim, obs_novelty = self._dials(action_vec, obs_vec, self.window)
-        reading = self.classify(action_sim, obs_novelty, self.calibrator)
+        reading = self._stamp(self.classify(action_sim, obs_novelty, self.calibrator))
 
         # §7: record BEFORE any state decision, so CALIBRATING turns count. The
         # most informative action in a run is often one of the first.
