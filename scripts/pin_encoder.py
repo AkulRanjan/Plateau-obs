@@ -1,19 +1,38 @@
 """One-time encoder download + revision pin.
 
-This is the ONLY script in the repo permitted to touch the network. It resolves
-``sentence-transformers/all-MiniLM-L6-v2`` to a concrete commit SHA, downloads
-that exact snapshot into ``models/``, and writes the SHA to
+This is the ONLY script in the repo permitted to touch the network. It downloads
+the pinned snapshot into ``models/`` and writes the SHA to
 ``models/encoder_revision.txt`` and into ``[tool.plateau] encoder_revision`` in
 pyproject.toml.
 
 The SHA is *read from the resolved snapshot*, never typed by hand. After this
 runs, every other entry point can operate with HF_HUB_OFFLINE=1.
 
-    python scripts/pin_encoder.py
+    python scripts/pin_encoder.py            # fetch the revision already pinned
+    python scripts/pin_encoder.py --repin    # resolve a NEW revision from the Hub
+
+RE-PINNING IS NOT THE DEFAULT, AND THAT MATTERS
+-----------------------------------------------
+This script used to resolve the Hub's *current* default-branch SHA on every run
+and rewrite pyproject.toml with it. That is right exactly once — the first time.
+On any later run, if upstream had moved, it would silently re-pin to a different
+revision than the one every number in metrics.json was generated against, and
+nothing would fail. The determinism contract (rule 3) would be quietly void:
+`encoder.fingerprint()`'s probe_sha256 would no longer match the committed one,
+and no test asserts that it does.
+
+So the default is now: if pyproject.toml already carries a revision, fetch
+exactly that. Getting a new one requires ``--repin``, which says out loud that
+metrics.json has to be regenerated afterwards.
+
+This came up for real — a teammate needed the weights on a second machine, and
+running this script unguarded would have re-pinned the project as a side effect
+of what looked like a download.
 """
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -51,6 +70,15 @@ def download_snapshot(model_id: str, revision: str) -> Path:
     return Path(path)
 
 
+def pinned_revision() -> str | None:
+    """The revision pyproject.toml already commits to, or None if unpinned."""
+    text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'^encoder_revision\s*=\s*"([^"]*)"', text, flags=re.MULTILINE)
+    if not match:
+        raise RuntimeError("could not find encoder_revision in pyproject.toml")
+    return match.group(1) or None
+
+
 def write_revision_file(revision: str) -> Path:
     target = MODELS_DIR / "encoder_revision.txt"
     target.write_text(revision + "\n", encoding="utf-8")
@@ -77,9 +105,34 @@ def patch_pyproject(revision: str) -> bool:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Download and pin the encoder.")
+    parser.add_argument(
+        "--repin",
+        action="store_true",
+        help=(
+            "resolve a NEW revision from the Hub and rewrite the pin. Every "
+            "number in metrics.json must be regenerated afterwards."
+        ),
+    )
+    args = parser.parse_args()
+
     print(f"model            : {MODEL_ID}")
-    revision = resolve_revision(MODEL_ID)
-    print(f"resolved revision: {revision}")
+    existing = pinned_revision()
+
+    if existing and not args.repin:
+        # The common case: someone needs the weights on another machine. Fetch
+        # exactly what the project already commits to and change nothing.
+        revision = existing
+        print(f"pinned revision  : {revision}  (from pyproject.toml)")
+    else:
+        revision = resolve_revision(MODEL_ID)
+        print(f"resolved revision: {revision}  (from the Hub)")
+        if existing and revision != existing:
+            print(
+                f"\n  !! RE-PINNING {existing} -> {revision}\n"
+                f"  !! Every number in metrics.json was produced by {existing[:12]}.\n"
+                f"  !! They are now unreproducible until you re-run the harness.\n"
+            )
 
     snapshot = download_snapshot(MODEL_ID, revision)
     print(f"snapshot         : {snapshot}")
@@ -90,7 +143,13 @@ def main() -> int:
     write_revision_file(revision)
     changed = patch_pyproject(revision)
     print(f"pyproject.toml   : {'updated' if changed else 'already pinned'}")
+
     print("\nPinned. All other entry points can now run with HF_HUB_OFFLINE=1.")
+    if changed:
+        print(
+            "pyproject.toml changed, so metrics.json is now stale. Regenerate it\n"
+            "before trusting any committed number."
+        )
     return 0
 
 
