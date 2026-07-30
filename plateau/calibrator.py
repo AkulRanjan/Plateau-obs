@@ -26,6 +26,26 @@ Three further guards sit behind the gate:
 * bounded drift -- once warm, updates are EWMA with a fixed ``ALPHA``, so a
   single turn can move the baseline by at most ``ALPHA`` of the residual.
 
+`idempotent: true` is a REQUIRED declaration for polling tools
+-------------------------------------------------------------
+Not an optional escape hatch. The measured novelty distribution
+(metrics.json -> novelty_floor_probe) shows pollers spanning 0.0067-0.2311 and
+paraphrased dead-end loops landing in the same band. There is no floor value that
+separates a healthy poller from a stuck agent, because a poller genuinely is
+informationally stalled -- "still running, 4m" then "still running, 9m" carries
+almost no new information, and that is the correct reading.
+
+So any tool that legitimately returns near-identical observations must declare
+itself idempotent. A caller who omits the declaration on a polling tool will see
+false trips, and that is a documented limitation rather than something the floor
+can be tuned around.
+
+The floor is also the calibration gate; the two are deliberately the same number.
+Decoupling them would weaken C1 -- the gate's whole strength is that "did not
+learn" and "may not teach" are one predicate. If a higher floor starves the
+calibrator, ``turns_to_warm`` will show it in metrics.json and the decision can
+be made from data.
+
 This module is pure arithmetic. It holds no encoder reference and performs no
 I/O, so its safety properties are independent of what any embedding model
 happens to output.
@@ -37,13 +57,20 @@ from dataclasses import dataclass, field
 
 # --- Fixed parameters (§5). Never calibrated. --------------------------------
 
-#: Minimum observation novelty for a turn to be allowed to teach the baseline.
+#: Minimum observation novelty for a turn to be allowed to teach the baseline,
+#: and the line below which a turn reads as "learned nothing".
 #:
-#: PLACEHOLDER, PENDING SWEEP. This value was chosen, not measured, and by rule 1
-#: it does not count as a result until eval/sweep.py produces it from data.
-#: scripts/novelty_floor_check.py records the distribution it has to separate
-#: (metrics.json -> novelty_floor_probe).
-NOVELTY_FLOOR = 0.15
+#: PROVISIONAL, PENDING SWEEP. Not a hand-picked number: chosen against the
+#: measured distribution in metrics.json -> novelty_floor_probe, where pollers
+#: top out at 0.2311 and batch work starts at 0.2572 (invoice pair 0.4392).
+#: 0.30 sits above the poller band and below batch. It is still a provisional
+#: value and eval/sweep.py owns the final one.
+#:
+#: This deliberately does NOT separate pollers from loops, because no threshold
+#: can: a poller is genuinely informationally stalled, so it reads the same as a
+#: loop by construction. The consequence is a hard requirement, not a
+#: workaround -- see the module docstring on `idempotent`.
+NOVELTY_FLOOR = 0.30
 
 #: Productive turns required before the learned ceiling is trusted at all.
 MIN_SAMPLES = 6
@@ -124,6 +151,12 @@ class Calibrator:
     #: Turns observed, gated or not. Distinct from n.
     _turns_seen: int = 0
 
+    #: Turn index at which n first reached min_samples, i.e. how many raw turns
+    #: the floor cost us before the breaker could arm. None while still cold.
+    #: Surfaced per trace class in metrics.json: if a higher floor starves the
+    #: calibrator, this is the number that shows it.
+    turns_to_warm: int | None = None
+
     log: list[CalibrationRecord] = field(default_factory=list)
 
     # -- the gate -------------------------------------------------------------
@@ -150,6 +183,10 @@ class Calibrator:
                 self._welford_update(action_sim)
             else:
                 self._ewma_update(action_sim)
+            if self.turns_to_warm is None and self.n >= self.min_samples:
+                # Raw turns consumed to arm, not productive turns. The gap
+                # between this and min_samples is the cost of the floor.
+                self.turns_to_warm = turn_index + 1
 
         # Logged either way. The gate blocks learning, not observability.
         self.log.append(
@@ -248,6 +285,12 @@ class Calibrator:
         return {
             "n": self.n,
             "turns_seen": self._turns_seen,
+            "turns_to_warm": self.turns_to_warm,
+            "gate_rejection_rate": (
+                sum(1 for record in self.log if record.gated) / len(self.log)
+                if self.log
+                else 0.0
+            ),
             "mu": self.mu,
             "sigma": self.sigma,
             "is_warm": self.is_warm,
