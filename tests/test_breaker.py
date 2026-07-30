@@ -40,7 +40,10 @@ class CountingEncoder:
 
 
 def always_trip(action_sim, obs_novelty, calibrator) -> Reading:
-    return Reading(action_sim, obs_novelty, quadrant=Quadrant.LOOP, is_trip=True)
+    return Reading(
+        action_sim, obs_novelty, quadrant=Quadrant.LOOP,
+        stagnant=True, confident=True, loop_hits=3, stall_hits=3, is_trip=True,
+    )
 
 
 def never_trip(action_sim, obs_novelty, calibrator) -> Reading:
@@ -48,6 +51,17 @@ def never_trip(action_sim, obs_novelty, calibrator) -> Reading:
 
 
 def make_breaker(classify=never_trip, **kwargs) -> Breaker:
+    """Test breaker with trip_after=3 unless overridden.
+
+    In production §6 owns the multi-turn counting and the breaker default is 1.
+    But `always_trip` is a fake that reports is_trip on its very first call,
+    whereas real §6 only does so on the third consecutive loop reading -- and
+    those two intervening turns take row 3 and enter the window, which is what
+    the pre-trip window is later compared against. Forcing 3 here reproduces
+    the real window contents; a default of 1 would leave the stalled turns out
+    of it and make the probe trivially succeed.
+    """
+    kwargs.setdefault("trip_after", 3)
     return Breaker(encoder=CountingEncoder(), classify=classify, **kwargs)
 
 
@@ -386,9 +400,24 @@ def test_provisional_parameters_are_flagged():
     """backoff and max_cooldown are not in §5's fixed table; guard the defaults."""
     from plateau.breaker import BACKOFF, COOLDOWN_TURNS, MAX_COOLDOWN, TRIP_AFTER, WINDOW_SIZE
 
-    assert TRIP_AFTER == 3
+    assert TRIP_AFTER == 1   # §6 owns multi-turn counting now
     assert WINDOW_SIZE == 8
     assert COOLDOWN_TURNS == 1
     # Provisional, pending a decision. Present so a change is deliberate.
     assert BACKOFF == 2.0
     assert MAX_COOLDOWN == 8
+
+
+def test_default_trip_after_is_one_because_six_owns_the_counting():
+    """§6 accumulates loop_hits/stall_hits, so the breaker opens on one reading."""
+    breaker = Breaker(encoder=CountingEncoder(), classify=never_trip)
+    assert breaker.trip_after == 1
+
+    for i in range(breaker.calibrator.min_samples):
+        breaker.observe(f"a{i}", f"distinct observation {i}")
+    assert breaker.state is State.CLOSED
+
+    breaker.classify = always_trip
+    decision = breaker.observe("stuck", "stuck")
+    assert decision.transition == 4, "a single is_trip reading must open the breaker"
+    assert decision.state is State.OPEN

@@ -101,20 +101,17 @@ class EscapeTracker:
     # -- messages -------------------------------------------------------------
 
     def _dials_clause(self, reading: Reading) -> str:
-        """Both dial readings, with the threshold each was compared against."""
-        if reading.quadrant is Quadrant.THRASH:
-            action_clause = (
-                f"action_sim {reading.action_sim:.3f} <= thrash_floor "
-                f"{reading.thrash_floor:.3f}"
-            )
-        else:
-            action_clause = (
-                f"action_sim {reading.action_sim:.3f} >= ceiling "
-                f"{reading.sim_ceiling:.3f}"
-            )
+        """Both dial readings, each against the threshold it was compared to.
+
+        There is no thrash floor: THRASH is simply stagnation the detector is
+        less confident about, i.e. below the ceiling rather than above it. The
+        comparison operator flips with ``confident``; the threshold does not.
+        """
+        operator = ">=" if reading.confident else "<"
         return (
-            f"{action_clause}; obs_novelty {reading.obs_novelty:.3f} < floor "
-            f"{reading.novelty_floor:.2f}"
+            f"action_sim {reading.action_sim:.3f} {operator} ceiling "
+            f"{reading.sim_ceiling:.3f}; obs_novelty {reading.obs_novelty:.3f} "
+            f"< floor {reading.novelty_floor:.2f}"
         )
 
     def _escape_clause(self) -> str:

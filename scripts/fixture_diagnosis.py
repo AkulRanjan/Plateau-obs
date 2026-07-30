@@ -1,4 +1,19 @@
-"""Why fixtures 1 and 3 fail: is it k_sigma, the clamps, or the fixtures?
+"""RETIRED. Kept for the record; superseded by the §6 revision.
+
+This script isolated why fixtures 1 and 3 landed in MIDDLE under the ORIGINAL §6,
+which had a `thrash_floor` derived from `mu - k*sigma`. Its finding -- that the
+clamp saturated at both ends and the MIDDLE band swallowed everything -- is what
+motivated removing the thrash floor entirely and moving the trip axis onto
+novelty. See metrics.json -> fixture_diagnosis for the numbers it produced.
+
+It no longer runs: `Calibrator.thrash_floor` and `Quadrant.MIDDLE` are both gone.
+Live fixture measurement is now scripts/detector_fixtures.py, and parameter
+exploration belongs in eval/sweep.py.
+
+Original docstring follows.
+=============================================================================
+
+Why fixtures 1 and 3 fail: is it k_sigma, the clamps, or the fixtures?
 
 Fixtures 1 (paraphrase -> loop) and 3 (thrash) both landed in MIDDLE. This
 isolates the cause by sweeping the one parameter that sets the width of the
@@ -10,6 +25,13 @@ Diagnostic only. Writes metrics.json -> fixture_diagnosis. Changes no defaults.
 """
 
 from __future__ import annotations
+
+raise SystemExit(
+    "scripts/fixture_diagnosis.py is RETIRED: it measures Calibrator.thrash_floor "
+    "and Quadrant.MIDDLE, both removed by the §6 revision. Its results are "
+    "preserved in metrics.json -> fixture_diagnosis. Use "
+    "scripts/detector_fixtures.py for live fixture readings."
+)
 
 import json
 import os

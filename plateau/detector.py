@@ -1,50 +1,60 @@
-"""§6 -- the two dials and the four-quadrant classifier.
+"""§6 (revised) -- the trip predicate and the four quadrant labels.
 
-Plateau reads two things per turn and nothing else:
+Plateau reads two things per turn:
 
     action_sim    how much this action resembles recent actions
     obs_novelty   how much this observation differs from recent observations
 
-The claim the whole project rests on is that these are *separable*: near-identical
-actions can accompany genuinely different observations. Gate 1 measured that
-directly (batch actions 0.9913, batch observations 0.5608 similar) and recorded it
-in metrics.json.
+**Novelty is the trip axis. Similarity only sets the evidence bar.** That is the
+central revision, and it came out of measurement rather than preference: three
+genuinely different tools (`read_file`, `grep`, `list_dir`) read `action_sim`
+0.7397 against the same window, so MiniLM has no low-similarity region for
+tool-call strings at all. A thrash floor of the form ``mu - k*sigma`` was looking
+for a region that does not exist, so it is gone -- not patched with a constant.
 
-Crossing the two dials gives five labels. Every turn gets one, because the demo
-and counter-demo both read the label, not just the trip decision:
+The predicate::
+
+    stagnant  = obs_novelty < NOVELTY_FLOOR            # the trip axis
+    confident = action_sim >= calibrator.sim_ceiling    # the evidence bar
+
+    stagnant and confident  ->  loop_hits += 1, stall_hits += 1
+    stagnant only           ->  loop_hits  = 0, stall_hits += 1
+    neither                 ->  loop_hits  = 0, stall_hits  = 0
+
+    trip = loop_hits >= TRIP_AFTER_LOOP or stall_hits >= TRIP_AFTER_STALL
+
+An unambiguous loop -- the agent asking the same question and getting the same
+non-answer -- trips in 3 turns. A stall the detector is less sure about still
+trips, but takes 6. Nothing is missed on the novelty axis; low-confidence
+stagnation is merely slower to act on, which is the right bias when the cost of a
+false trip is interrupting a working agent.
+
+The four labels, kept because the demo and counter-demo both read them:
 
                        learned something          learned nothing
                        (novelty >= floor)         (novelty < floor)
-    repetitive action   GRIND                      LOOP        <- trips
+    confident           GRIND                      LOOP        <- trips at 3
     (sim >= ceiling)    a batch job. healthy.      the classic stall.
 
-    varied action       EXPLORE                    THRASH       <- trips
-    (sim <= thrash)     open-ended research.       the expensive one.
+    not confident       EXPLORE                    THRASH      <- trips at 6
+    (sim <  ceiling)    open-ended research.       varied actions, no progress.
                         healthy.
 
-    neither             MIDDLE -- never trips, in either column.
+There is no MIDDLE category. What used to fall there is now THRASH with a slower
+trip, which is the honest reading: an agent that has stopped learning has stopped
+learning, whether or not its actions look repetitive.
 
-GRIND is the counter-demo: repeating yourself while still learning is a batch
-job, and no shipped detector can tell it from a stall because they all read only
-one half of the turn. THRASH is the one no shipped detector can reach at all,
-because reaching it requires noticing that *varied* actions are producing nothing.
-
-DERIVATION NOTE
----------------
-The §6 text was not available when this was written. The dial semantics, the five
-labels, and "the middle band never trips" are as instructed. The **boundary
-conditions** below are derived from the §5 calibrator's two published dials
-(``sim_ceiling`` and ``thrash_floor``) and the fixed ``novelty_floor``, because
-those are the only thresholds in the design. If §6 specifies different
-boundaries -- hysteresis, a different comparison operator, a separate
-grind-specific threshold -- this is the file to correct, and the fixture readings
-in metrics.json -> detector_fixtures should be re-derived.
+GRIND is the counter-demo. The invoice batch reads `action_sim` 0.9913, which
+clears the ceiling comfortably -- so similarity alone would condemn it. It is
+protected by novelty (0.4392) and nothing else. That is the joint design earning
+its place, and it is pinned by
+``test_batch_protected_by_novelty_not_similarity``.
 """
 
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 import numpy as np
@@ -52,109 +62,105 @@ import numpy as np
 from plateau.calibrator import NOVELTY_FLOOR, Calibrator
 from plateau.encoder import max_cosine
 
+#: Consecutive unambiguous-loop readings before the breaker trips.
+#: PROVISIONAL -- sweep owns it.
+TRIP_AFTER_LOOP = 3
+
+#: Consecutive stagnant readings of any confidence before the breaker trips.
+#: PROVISIONAL -- sweep owns it.
+TRIP_AFTER_STALL = 6
+
+#: Value `action_sim` is pinned to under the novelty_only ablation. Below
+#: HARD_LO, so `confident` can never be true.
+NOVELTY_ONLY_ACTION_SIM = 0.0
+
 
 class Quadrant(str, Enum):
-    """Every turn gets exactly one of these."""
+    """Every turn gets exactly one. There is no MIDDLE."""
 
     GRIND = "grind"
     LOOP = "loop"
     EXPLORE = "explore"
     THRASH = "thrash"
-    MIDDLE = "middle"
 
 
-#: The two quadrants that open the breaker. GRIND and EXPLORE are healthy;
-#: MIDDLE is a deliberate miss (see `quadrant`).
-TRIPPING_QUADRANTS = frozenset({Quadrant.LOOP, Quadrant.THRASH})
+#: The two stagnant quadrants. Both trip; they differ only in how many
+#: consecutive readings it takes.
+STAGNANT_QUADRANTS = frozenset({Quadrant.LOOP, Quadrant.THRASH})
 
 
 @dataclass(frozen=True)
 class Reading:
-    """One turn's two dials plus its verdict.
-
-    Attributes:
-        action_sim: max cosine of this action against the window.
-        obs_novelty: ``1 - max cosine`` of this observation against the window.
-        quadrant: the label. Every turn has one.
-        is_trip: whether this reading counts toward opening the breaker.
-        turn_index: 0-indexed position in the run.
-        sim_ceiling: the ceiling in force when this reading was taken.
-        thrash_floor: the thrash floor in force when this reading was taken.
-        novelty_floor: the floor in force when this reading was taken.
-    """
+    """One turn's two dials, its label, and the accumulated evidence."""
 
     action_sim: float
     obs_novelty: float
-    quadrant: Quadrant = Quadrant.MIDDLE
+    quadrant: Quadrant = Quadrant.EXPLORE
+    stagnant: bool = False
+    confident: bool = False
+    loop_hits: int = 0
+    stall_hits: int = 0
     is_trip: bool = False
     turn_index: int = 0
     sim_ceiling: float = 0.0
-    thrash_floor: float = 0.0
     novelty_floor: float = NOVELTY_FLOOR
 
 
 @dataclass
 class PlateauConfig:
-    """Detector configuration.
+    """Detector configuration, including the two ablation switches.
 
     Attributes:
-        novelty_floor: the fixed floor. Also the calibration gate; see §5.
-        action_only: **ablation switch.** Forces the ``obs_novelty`` term to 0.0,
-            reducing Plateau to an action-similarity detector -- i.e. what every
-            shipped repetition detector already does. Its purpose is to *fail*:
-            with novelty pinned at 0.0 a healthy batch job reads as a stall, so
-            the ablation trips on the counter-demo and the full detector does
-            not. That contrast is the measurement.
+        novelty_floor: the fixed floor, and the calibration gate. See §5.
+        trip_after_loop: consecutive unambiguous-loop readings before tripping.
+        trip_after_stall: consecutive stagnant readings before tripping.
+        action_only: **ablation.** Pins ``obs_novelty`` to 0.0, so every turn
+            reads as stagnant and only the similarity dial carries information --
+            i.e. what every shipped repetition detector already does. Its purpose
+            is to *fail*: it must trip on the healthy invoice batch, and the full
+            detector must not.
+        novelty_only: **ablation.** Pins ``action_sim`` to 0.0, so ``confident``
+            is never true and only the ``stall_hits`` path can fire. Isolates what
+            the similarity dial contributes. If this matches full Plateau on
+            everything except turns-to-detection, that is the honest finding and
+            it belongs in the README.
     """
 
     novelty_floor: float = NOVELTY_FLOOR
+    trip_after_loop: int = TRIP_AFTER_LOOP
+    trip_after_stall: int = TRIP_AFTER_STALL
     action_only: bool = False
+    novelty_only: bool = False
+
+    def __post_init__(self) -> None:
+        if self.action_only and self.novelty_only:
+            raise ValueError(
+                "action_only and novelty_only are mutually exclusive ablations"
+            )
+
+    @property
+    def label(self) -> str:
+        if self.action_only:
+            return "plateau_action_only"
+        if self.novelty_only:
+            return "plateau_novelty_only"
+        return "plateau"
 
 
-def quadrant(
-    action_sim: float,
-    obs_novelty: float,
-    calibrator: Calibrator,
-    config: PlateauConfig | None = None,
-) -> Quadrant:
-    """Label one reading.
-
-    Boundaries are inclusive at the thresholds: a reading exactly at the ceiling
-    counts as repetitive, and one exactly at the floor counts as having learned
-    something. Ties resolve toward *not* tripping wherever that choice exists,
-    which is the same bias as §5's conservative warmup.
-    """
-    config = config or PlateauConfig()
-
-    repetitive = action_sim >= calibrator.sim_ceiling
-    varied = action_sim <= calibrator.thrash_floor
-    learning = obs_novelty >= config.novelty_floor
-
-    # A degenerate calibrator could in principle satisfy both; ceiling above
-    # floor is asserted by C2, so `repetitive` wins and this stays unreachable.
-    if repetitive:
-        return Quadrant.GRIND if learning else Quadrant.LOOP
-    if varied:
-        return Quadrant.EXPLORE if learning else Quadrant.THRASH
-
-    # MIDDLE: a DELIBERATE MISS, not an oversight.
-    #
-    # Between thrash_floor and sim_ceiling the action stream is neither
-    # repetitive nor varied enough for either signal to mean anything. Tripping
-    # here would mean tripping on ordinary work, which is exactly the false-
-    # positive every incumbent has filed as an open bug (OpenHands #5355). We
-    # accept the miss: a genuine stall drifts toward one of the two extremes and
-    # gets caught on a later turn, one turn later at worst. Recall is the price
-    # and the sweep publishes it.
-    return Quadrant.MIDDLE
+def quadrant(stagnant: bool, confident: bool) -> Quadrant:
+    """Label a reading from the two predicates."""
+    if stagnant:
+        return Quadrant.LOOP if confident else Quadrant.THRASH
+    return Quadrant.GRIND if confident else Quadrant.EXPLORE
 
 
 class Detector:
-    """Owns the encoder, the window, and the calibrator; produces Readings.
+    """Owns the encoder, the window, the calibrator, and the hit counters.
 
-    The breaker consumes ``classify`` as its §6 seam. ``evaluate`` is the
-    standalone entry point used by the fixtures and the harness, and computes the
-    dials itself.
+    §6 owns the multi-turn accumulation, because the two thresholds
+    (``TRIP_AFTER_LOOP`` and ``TRIP_AFTER_STALL``) apply to two different
+    conditions and a single counter cannot express that. The breaker therefore
+    opens on ``Reading.is_trip`` rather than counting for itself.
     """
 
     def __init__(
@@ -173,6 +179,9 @@ class Detector:
         self._action_vecs: deque[np.ndarray] = deque(maxlen=window_size)
         self._obs_vecs: deque[np.ndarray] = deque(maxlen=window_size)
         self._turn_index = 0
+
+        self.loop_hits = 0
+        self.stall_hits = 0
         self.readings: list[Reading] = []
 
     # -- dials ----------------------------------------------------------------
@@ -181,44 +190,77 @@ class Detector:
         """Compute (action_sim, obs_novelty) against the current window.
 
         On the first turn the window is empty, so ``max_cosine`` returns 0.0:
-        similarity 0.0 and novelty 1.0. A run therefore starts maximally novel,
-        which is correct -- nothing has been seen yet to be redundant with.
+        similarity 0.0 and novelty 1.0. A run starts maximally novel, which is
+        correct -- nothing has been seen yet to be redundant with.
         """
         action_sim = max_cosine(action_vec, self._action_vecs)
-        obs_sim = max_cosine(obs_vec, self._obs_vecs)
-        obs_novelty = 1.0 - obs_sim
+        # Float error on an identical pair can push cosine a hair above 1.0 and
+        # report novelty as -0.0000, which is noise in every log and report.
+        obs_novelty = max(0.0, 1.0 - max_cosine(obs_vec, self._obs_vecs))
+        return self._apply_ablation(action_sim, obs_novelty)
 
+    def _apply_ablation(self, action_sim: float, obs_novelty: float):
         if self.config.action_only:
-            # THE ABLATION. Pin novelty at 0.0 so the detector can only ever see
-            # the action half. Everything then reads as "learned nothing".
-            obs_novelty = 0.0
-
+            # Blind to the observation half: everything reads as stagnant.
+            return action_sim, 0.0
+        if self.config.novelty_only:
+            # Blind to the action half: `confident` can never be true.
+            return NOVELTY_ONLY_ACTION_SIM, obs_novelty
         return action_sim, obs_novelty
 
-    # -- the §6 seam consumed by the breaker ----------------------------------
+    # -- the predicate --------------------------------------------------------
 
     def classify(
         self, action_sim: float, obs_novelty: float, calibrator: Calibrator
     ) -> Reading:
-        """Label a reading whose dials were computed elsewhere (the breaker)."""
-        if self.config.action_only:
-            obs_novelty = 0.0
-        label = quadrant(action_sim, obs_novelty, calibrator, self.config)
+        """Apply the §6 predicate and advance the hit counters.
+
+        Called once per turn -- by :meth:`evaluate`, or by the breaker as its §6
+        seam. Calling it twice for one turn would double-count.
+        """
+        action_sim, obs_novelty = self._apply_ablation(action_sim, obs_novelty)
+
+        stagnant = obs_novelty < self.config.novelty_floor
+        confident = action_sim >= calibrator.sim_ceiling
+
+        if stagnant and confident:
+            self.loop_hits += 1
+            self.stall_hits += 1
+        elif stagnant:
+            self.loop_hits = 0
+            self.stall_hits += 1
+        else:
+            self.loop_hits = 0
+            self.stall_hits = 0
+
+        is_trip = (
+            self.loop_hits >= self.config.trip_after_loop
+            or self.stall_hits >= self.config.trip_after_stall
+        )
+
         return Reading(
             action_sim=action_sim,
             obs_novelty=obs_novelty,
-            quadrant=label,
-            is_trip=label in TRIPPING_QUADRANTS,
+            quadrant=quadrant(stagnant, confident),
+            stagnant=stagnant,
+            confident=confident,
+            loop_hits=self.loop_hits,
+            stall_hits=self.stall_hits,
+            is_trip=is_trip,
             turn_index=self._turn_index,
             sim_ceiling=calibrator.sim_ceiling,
-            thrash_floor=calibrator.thrash_floor,
             novelty_floor=self.config.novelty_floor,
         )
+
+    def reset_hits(self) -> None:
+        """Clear accumulated evidence. Called by the breaker on §8 transition 7."""
+        self.loop_hits = 0
+        self.stall_hits = 0
 
     # -- standalone entry point -----------------------------------------------
 
     def evaluate(self, action_text: str, observation_text: str) -> Reading:
-        """Embed one turn, read both dials, label it, and advance the window.
+        """Embed one turn, read both dials, label it, advance the window.
 
         One encoder call per turn: both halves go through in a single batch.
         """
@@ -228,7 +270,7 @@ class Detector:
         action_sim, obs_novelty = self.dials(action_vec, obs_vec)
         reading = self.classify(action_sim, obs_novelty, self.calibrator)
 
-        # Gate applies here too: only informative turns teach the baseline.
+        # The gate applies here too: only informative turns teach the baseline.
         self.calibrator.update(action_sim=action_sim, obs_novelty=obs_novelty)
 
         self._action_vecs.append(action_vec)
@@ -236,6 +278,17 @@ class Detector:
         self._turn_index += 1
         self.readings.append(reading)
         return reading
+
+    def run(self, turns) -> int | None:
+        """Evaluate a whole trace. Returns the 0-indexed trip turn, or None.
+
+        Matches the baselines' ``detect(turns) -> int | None`` contract so the
+        harness can treat Plateau and the ported detectors identically.
+        """
+        for action_text, observation_text in turns:
+            if self.evaluate(action_text, observation_text).is_trip:
+                return self._turn_index - 1
+        return None
 
     # -- introspection --------------------------------------------------------
 
@@ -247,8 +300,10 @@ class Detector:
 
     def snapshot(self) -> dict[str, object]:
         return {
+            "variant": self.config.label,
             "turns": self._turn_index,
-            "action_only": self.config.action_only,
+            "loop_hits": self.loop_hits,
+            "stall_hits": self.stall_hits,
             "quadrants": self.quadrant_counts(),
             "calibrator": self.calibrator.snapshot(),
         }

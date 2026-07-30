@@ -22,8 +22,6 @@ from plateau.calibrator import (
     K_SIGMA,
     MIN_SAMPLES,
     NOVELTY_FLOOR,
-    THRASH_HI,
-    THRASH_LO,
     Calibrator,
 )
 
@@ -45,7 +43,6 @@ def test_c1_zero_novelty_turns_cannot_move_the_baseline():
 
     mu_before, sigma_before, n_before = cal.mu, cal.sigma, cal.n
     ceiling_before = cal.sim_ceiling
-    thrash_before = cal.thrash_floor
 
     # 100 turns of a perfectly stuck agent: near-identical actions, no new
     # information at all.
@@ -56,7 +53,6 @@ def test_c1_zero_novelty_turns_cannot_move_the_baseline():
     assert cal.mu == mu_before, "mu moved: a stuck agent taught the baseline"
     assert cal.sigma == sigma_before, "sigma moved: a stuck agent widened tolerance"
     assert cal.sim_ceiling == ceiling_before, "the ceiling drifted upward under a loop"
-    assert cal.thrash_floor == thrash_before
 
 
 def test_c1_gate_holds_from_a_cold_start():
@@ -132,16 +128,6 @@ def test_c2_sim_ceiling_never_escapes_hard_clamps(sims):
     assert HARD_LO <= cal.sim_ceiling <= HARD_HI
 
 
-@pytest.mark.parametrize(
-    "sims",
-    [[1.0] * 40, [0.0] * 40, [0.0, 1.0] * 20, [-1.0, 1.0] * 20, [0.5] * 40],
-)
-def test_c2_thrash_floor_never_escapes_hard_clamps(sims):
-    cal = Calibrator()
-    productive(cal, sims)
-    assert THRASH_LO <= cal.thrash_floor <= THRASH_HI
-
-
 def test_c2_max_variance_stream_would_exceed_clamp_without_it():
     """Prove the clamp is load-bearing, not decorative.
 
@@ -155,12 +141,24 @@ def test_c2_max_variance_stream_would_exceed_clamp_without_it():
     assert cal.sim_ceiling == HARD_HI
 
 
-def test_c2_thrash_floor_stays_below_sim_ceiling():
-    """The two dials must not cross, or the quadrants become incoherent."""
-    for sims in ([1.0] * 40, [0.0] * 40, [0.0, 1.0] * 20, [0.3] * 40):
-        cal = Calibrator()
-        productive(cal, sims)
-        assert cal.thrash_floor < cal.sim_ceiling
+def test_c2_a_varied_agent_ceiling_is_clearable_by_a_paraphrase():
+    """The regime that matters: a heterogeneous agent that then starts looping.
+
+    The old HARD_HI of 0.97 pinned the ceiling above the measured paraphrase
+    similarity of 0.8927 for *every* profile, so a reworded loop was invisible by
+    construction. It is only defensible for the ceiling to exceed 0.8927 when the
+    agent's own normal similarity is already higher than that -- in which case a
+    0.89 turn genuinely is less repetitive than its baseline.
+
+    So this asserts the varied case, not all cases: an agent whose actions vary
+    must end up with a ceiling a paraphrase can clear.
+    """
+    PARAPHRASE_SIM = 0.8927
+    research = Calibrator()
+    productive(research, [0.30, 0.45, 0.22, 0.51, 0.38, 0.29, 0.47, 0.33])
+    assert research.sim_ceiling <= PARAPHRASE_SIM, (
+        f"ceiling {research.sim_ceiling} blocks a paraphrase at {PARAPHRASE_SIM}"
+    )
 
 
 # --- C3: conservative warmup -------------------------------------------------
@@ -179,19 +177,16 @@ def test_c3_ceiling_is_the_default_before_min_samples():
     assert cal.sim_ceiling != CONSERVATIVE_DEFAULT
 
 
-def test_c3_thrash_cannot_trip_during_warmup():
-    """thrash_floor is 0.0 during warmup, so no reading can fall below it."""
-    cal = Calibrator()
-    for _ in range(MIN_SAMPLES - 1):
-        cal.update(action_sim=0.20, obs_novelty=0.60)
-    assert not cal.is_warm
-    assert cal.thrash_floor == 0.0
-
-
 def test_c3_warmup_default_errs_toward_not_tripping():
-    """A very high default means fewer trips, which is the safe direction."""
-    assert CONSERVATIVE_DEFAULT >= 0.90
+    """A high default means fewer trips, which is the safe direction.
+
+    But not so high that the pattern becomes invisible: the warmup ceiling must
+    still sit at or below the measured paraphrase similarity, or an uncalibrated
+    detector could never catch a reworded loop. At 0.90 it could not.
+    """
+    assert CONSERVATIVE_DEFAULT >= 0.60
     assert CONSERVATIVE_DEFAULT <= HARD_HI
+    assert CONSERVATIVE_DEFAULT <= 0.8927, "warmup ceiling blocks a measured paraphrase"
 
 
 # --- C4: task adaptation is real --------------------------------------------
@@ -300,7 +295,7 @@ def test_calibrator_is_deterministic():
         cal = Calibrator()
         for sim, nov in stream:
             cal.update(action_sim=sim, obs_novelty=nov)
-        return (cal.n, cal.mu, cal.sigma, cal.sim_ceiling, cal.thrash_floor)
+        return (cal.n, cal.mu, cal.sigma, cal.sim_ceiling)
 
     assert run() == run()
 
@@ -309,6 +304,9 @@ def test_fixed_parameters_match_the_spec():
     """§5 fixes these and they are never calibrated. Guard against silent drift."""
     assert NOVELTY_FLOOR == 0.30   # PROVISIONAL, pending sweep
     assert MIN_SAMPLES == 6
-    assert K_SIGMA == 2.0
+    assert K_SIGMA == 1.0          # PROVISIONAL, moved into the sweep
     assert ALPHA == 0.1
-    assert (HARD_LO, HARD_HI) == (0.55, 0.97)
+    assert (HARD_LO, HARD_HI) == (0.60, 0.92)
+    # The old 0.97 sat so far above every measured profile that the ceiling
+    # clamped there universally and no paraphrase could ever clear it.
+    assert HARD_HI < 0.97, "regression to the ceiling that hid paraphrase loops"
