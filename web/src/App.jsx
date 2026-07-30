@@ -1,73 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { Columns2, Gauge } from "lucide-react";
 
 import AuroraBackground from "./components/AuroraBackground.jsx";
-import Controls from "./components/Controls.jsx";
-import DetectorRace from "./components/DetectorRace.jsx";
-import GlassPanel, { PanelHead } from "./components/GlassPanel.jsx";
-import Hero from "./components/Hero.jsx";
-import MeasuredFixtures from "./components/MeasuredFixtures.jsx";
-import QuadrantMap, { Legend } from "./components/QuadrantMap.jsx";
-import RecoveryStrip from "./components/RecoveryStrip.jsx";
-import StatusBar from "./components/StatusBar.jsx";
-import TelemetryFeed from "./components/TelemetryFeed.jsx";
-import { usePlayback } from "./hooks/usePlayback.js";
-import { useTripSequence } from "./hooks/useTripSequence.js";
-import { deriveState } from "./lib/deriveState.js";
-import { ACCENT, TRACE } from "./data/trace.js";
-import { EPILOGUE } from "./data/epilogue.js";
+import ConsoleView from "./components/ConsoleView.jsx";
+import SplitScreen from "./components/SplitScreen.jsx";
 
-/** Long enough for the tokens-saved spring to settle before Recover appears. */
-const TICKER_SETTLE_MS = 1500;
+const MODES = [
+  { key: "console", label: "Console", icon: Gauge },
+  { key: "split", label: "Split screen", icon: Columns2 },
+];
 
+/**
+ * Shell: backdrop, the trip flash overlay, and the mode switch.
+ *
+ * The two modes are mutually exclusive on purpose. Each owns its own clock —
+ * the console's stops at the trip, the split-screen's runs on to the step-cap
+ * so the unguarded pane can keep spending — and mounting only one at a time
+ * means there is never more than one clock running.
+ */
 export default function App() {
-  const playback = usePlayback({ length: TRACE.length });
-  const { step, pause } = playback;
-
-  const S = useMemo(() => deriveState(step), [step]);
-  const tripped = S.state === "open";
-
-  // Halt the run the instant the breaker trips. This IS the product, so it is
-  // the one effect in the app that must never be debounced or deferred.
-  useEffect(() => {
-    if (tripped) pause();
-  }, [tripped, pause]);
-
-  // The one Anime.js timeline: marker drop, pill flinch, accent flash. It runs
-  // alongside the tokens ticker rather than before it — nothing is allowed to
-  // delay the payoff beat.
-  useTripSequence(tripped);
-
-  // --- recovery (claim 4) -------------------------------------------------
-  // Deliberately manual. The demo contract is mount -> play -> halt -> ticker,
-  // and recovery must not compete with any part of it: the control only appears
-  // once the tokens-saved spring has had time to land, and it never advances on
-  // its own.
-  const [recoveryStep, setRecoveryStep] = useState(-1);
-  const [recoveryReady, setRecoveryReady] = useState(false);
-
-  useEffect(() => {
-    if (!tripped) {
-      setRecoveryReady(false);
-      setRecoveryStep(-1);
-      return;
-    }
-    const id = setTimeout(() => setRecoveryReady(true), TICKER_SETTLE_MS);
-    return () => clearTimeout(id);
-  }, [tripped]);
-
-  const advanceRecovery = useCallback(
-    () => setRecoveryStep((s) => Math.min(EPILOGUE.length - 1, s + 1)),
-    []
-  );
-
-  const accent = ACCENT[S.state] || "var(--color-cyan)";
+  const [mode, setMode] = useState("console");
 
   return (
-    <div
-      className="relative min-h-dvh font-display text-ink"
-      style={{ "--accent": accent }}
-      data-open={tripped ? "1" : "0"}
-    >
+    <div className="relative min-h-dvh font-display text-ink">
       <AuroraBackground />
 
       {/* Accent wash on trip. Owned by the Anime.js timeline; pointer-events
@@ -83,69 +38,35 @@ export default function App() {
       />
 
       <div className="relative z-10 mx-auto max-w-[1180px] px-5 py-8">
-        <StatusBar state={S.state} />
-
-        <Controls
-          playing={playback.playing}
-          atEnd={playback.atEnd}
-          fast={playback.fast}
-          tripped={tripped}
-          turn={step}
-          total={TRACE.length}
-          onRun={playback.run}
-          onPause={playback.pause}
-          onStep={playback.stepOne}
-          onReset={playback.reset}
-          onToggleFast={playback.toggleFast}
-        />
-
-        <Hero rows={S.rows} tripTurn={S.tripTurn} tripped={tripped} />
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <GlassPanel>
-            <PanelHead
-              label="semantic space"
-              sub="every turn placed by what it repeats × what it learned"
-            />
-            <QuadrantMap rows={S.rows} ceiling={S.ceiling} warm={S.warm} />
-            <Legend />
-          </GlassPanel>
-
-          <GlassPanel className="flex flex-col">
-            <PanelHead
-              label="telemetry"
-              sub="live turn stream"
-              right={
-                <span className="font-mono text-[10px] text-faint">
-                  n={S.n} · streak={S.streak}
-                </span>
-              }
-            />
-            <TelemetryFeed
-              rows={S.rows}
-              tripped={tripped}
-              tripTurn={S.tripTurn}
-            />
-          </GlassPanel>
+        <div
+          className="mb-4 inline-flex gap-1 rounded-xl border border-line-soft bg-surface p-1"
+          role="tablist"
+          aria-label="View"
+        >
+          {MODES.map(({ key, label, icon: Icon }) => {
+            const active = mode === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setMode(key)}
+                className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 font-mono text-[11px] tracking-[0.04em] transition-colors"
+                style={
+                  active
+                    ? { background: "var(--color-cyan)", color: "#06171a" }
+                    : { color: "var(--color-muted)" }
+                }
+              >
+                <Icon size={13} aria-hidden="true" />
+                {label}
+              </button>
+            );
+          })}
         </div>
 
-        <GlassPanel className="mt-4">
-          <PanelHead
-            label="detector race"
-            sub="same trace, six detectors — who fired, and were they right"
-          />
-          <DetectorRace turn={step} />
-        </GlassPanel>
-
-        {tripped && (
-          <RecoveryStrip
-            step={recoveryStep}
-            ready={recoveryReady}
-            onAdvance={advanceRecovery}
-          />
-        )}
-
-        <MeasuredFixtures />
+        {mode === "console" ? <ConsoleView /> : <SplitScreen />}
 
         <footer className="mt-4 flex flex-wrap justify-between gap-3.5 pt-1 font-mono text-[11px] text-faint">
           <span>
