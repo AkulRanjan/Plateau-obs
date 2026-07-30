@@ -158,18 +158,20 @@ check(
 const bl = await import(resolve(HERE, "../src/lib/baselines.js"));
 const race = bl.runAll(TRACE);
 
-// The paraphrase claim: lexical and exact matching must MISS this loop. If a
-// later edit reverts the observations to literal repeats, lexical starts firing
-// before Plateau and the panel quietly contradicts the pitch.
+// The loop repeats one byte-identical non-answer, which is exactly what lexical
+// Jaccard is built for — so it fires, and it fires BEFORE Plateau. That is the
+// honest result and it is asserted rather than hidden, because the team measured
+// that the paraphrased alternative is a class Plateau misses outright
+// (metrics.json -> long_trace_comparison.paraphrase_loop_varied_wording).
 check(
-  race.lexical === null,
-  `agent-loop-detector (lexical Jaccard) fires at turn ${race.lexical}. The loop ` +
-    `observations must be paraphrases, not repeats — otherwise a lexical ` +
-    `baseline out-detects Plateau and the paraphrase claim is false on this trace.`
+  race.lexical !== null && race.lexical < TRIP_TURN,
+  `expected the lexical baseline to fire before Plateau on a byte-identical ` +
+    `loop, got ${race.lexical} vs Plateau ${TRIP_TURN}. If this trace ever stops ` +
+    `being a literal repeat the numbers must be re-measured, not re-asserted.`
 );
 check(
   race.exactMatch === null,
-  `exact-match (OpenHands) fires at turn ${race.exactMatch}; expected never on a paraphrased loop`
+  `exact-match (OpenHands) fires at turn ${race.exactMatch}; expected never — the actions differ every turn`
 );
 check(
   race.exactArgs === null,
@@ -263,7 +265,10 @@ const fixturesDoc = JSON.parse(fixturesRaw);
 // Not-yet-valid numbers must never reach a jury-facing panel. Fixtures 1 and 2
 // are two turns long and cannot trip, so recall and the sweep built on them are
 // artifacts rather than results.
-const FORBIDDEN = ["recall", "sweep", "usable_window", "n_usable_configs", "false_trip_rate"];
+// The SWEEP's recall is an artifact (two-turn fixtures cannot trip). The
+// LONG-TRACE recall is measured on 16-61 turn traces and is valid, so it is
+// allowed — and required, see below.
+const FORBIDDEN = ["sweep", "usable_window", "n_usable_configs", "distinct_recall_values"];
 const leaked = FORBIDDEN.filter((k) => fixturesRaw.includes(`"${k}"`));
 check(
   leaked.length === 0,
@@ -276,6 +281,36 @@ const metrics = JSON.parse(
   readFileSync(resolve(HERE, "../../metrics.json"), "utf8")
 );
 const srcFixtures = metrics.detector_fixtures;
+// The long-trace block must be present AND must still carry the results that go
+// against us. If a later edit quietly drops the paraphrase miss or Plateau's
+// poller false trip, the panel stops being an honest report.
+const lt = fixturesDoc.long_traces;
+check(lt != null, "fixtures.json has no long_traces block — run npm run extract-metrics");
+if (lt) {
+  const pl = lt.detectors?.plateau;
+  check(
+    pl?.missed?.includes("paraphrase_loop_varied_wording"),
+    "the long-trace block no longer records that Plateau misses " +
+      "paraphrase_loop_varied_wording. That is the primary claimed advantage and " +
+      "it is currently an open miss — it must stay visible."
+  );
+  check(
+    pl?.false_trips?.includes("healthy_poller"),
+    "the long-trace block no longer records Plateau's healthy_poller false trip"
+  );
+  check(
+    Array.isArray(lt.perfect_detectors) && lt.perfect_detectors.length === 0,
+    `perfect_detectors is ${JSON.stringify(lt.perfect_detectors)}; if some detector ` +
+      `now achieves recall 1.0 with zero false trips, the UI copy needs rewriting`
+  );
+  const lex = lt.detectors?.lexical;
+  check(
+    lex != null && lex.recall >= (pl?.recall ?? 0),
+    "the lexical baseline no longer matches or beats Plateau on recall; the " +
+      "detector-race footer says it does, so that copy would be stale"
+  );
+}
+
 check(
   fixturesDoc.encoder?.revision === srcFixtures?.encoder?.revision,
   `fixtures.json encoder revision ${fixturesDoc.encoder?.revision} != ` +
@@ -347,11 +382,11 @@ console.log(
     `\n  batch protected : ${batchRows.length} turns, sim ${batchSims} — all above the floor` +
     `\n  dot integrity   : ${allRows.length} turns, position agrees with quadrant, all in bounds` +
     `\n  race (computed) : Plateau ${TRIP_TURN} · ablation ${ablation} (batch, false trip) · ` +
-    `lexical/exact-match/exact-args/step-cap all never` +
+    `lexical ${race.lexical} (before us) · exact-match/exact-args/step-cap never` +
     `\n  recovery        : escape -> turn ${route.turn} (nov ${route.novelty}), probe ${epi.PROBE_NOVELTY} passes, ` +
     `ends CLOSED, costs ${rec.COST_OF_A_FALSE_TRIP_IN_TURNS} turn` +
     `\n  measured panel  : ${fixturesDoc.fixtures.length} fixtures in sync with metrics.json, ` +
-    `no recall/sweep leakage` +
+    `long-trace block present, misses and false trips intact` +
     `\n  split screen    : unguarded runs 1..${STEP_CAP}, guarded freezes at ${TRIP_TURN}, ` +
     `both panels quote ${splitSaving.toLocaleString("en-US")} tokens\n`
 );

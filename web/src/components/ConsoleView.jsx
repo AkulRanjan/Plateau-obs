@@ -4,6 +4,7 @@ import Controls from "./Controls.jsx";
 import DetectorRace from "./DetectorRace.jsx";
 import GlassPanel, { PanelHead } from "./GlassPanel.jsx";
 import Hero from "./Hero.jsx";
+import LongTraceTable from "./LongTraceTable.jsx";
 import MeasuredFixtures from "./MeasuredFixtures.jsx";
 import QuadrantMap, { Legend } from "./QuadrantMap.jsx";
 import RecoveryStrip from "./RecoveryStrip.jsx";
@@ -129,6 +130,8 @@ export default function ConsoleView() {
           onAdvance={advanceRecovery}
         />
       )}
+
+      <LongTraceTable />
 
       <MeasuredFixtures />
     </div>
