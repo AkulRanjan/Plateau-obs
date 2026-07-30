@@ -40,8 +40,27 @@ def test_records_during_calibrating():
     """§7: the most informative action often precedes the breaker being armed."""
     tracker = tracker_with_a_route()
     assert len(tracker.candidates) == 3
-    assert tracker.best.turn_index == 0
+    # Turn 1, not turn 0 -- see test_turn_zero_is_excluded_from_the_escape_vector.
+    assert tracker.best.turn_index == 1
     assert tracker.best.state == "CALIBRATING"
+
+
+def test_turn_zero_is_excluded_from_the_escape_vector():
+    """Turn 0's novelty is 1.0 by construction, not by merit.
+
+    The window is empty on the first turn, so nothing can be redundant with it.
+    Left eligible, turn 0 wins every comparison and the escape vector always
+    points at whatever the agent happened to do first, which is not advice.
+    """
+    tracker = EscapeTracker()
+    tracker.record(0, "list_dir(path='src/')", 1.0, state="CALIBRATING")
+    tracker.record(1, "read_file(f='auth.py')", 0.62, state="CALIBRATING")
+    assert tracker.best.turn_index == 1, "turn 0 must not win on its free novelty"
+
+    # With nothing else recorded, turn 0 is all there is and may be named.
+    only_first = EscapeTracker()
+    only_first.record(0, "list_dir(path='src/')", 1.0)
+    assert only_first.best.turn_index == 0
 
 
 def test_best_breaks_ties_toward_the_earlier_turn():
@@ -78,7 +97,7 @@ def test_loop_variant():
     assert "[plateau:loop]" in message
     assert "same question" in message
     assert "Escape:" in message
-    assert "turn 0" in message, "must name the most informative turn"
+    assert "turn 1" in message, "must name the most informative eligible turn"
     assert ">= ceiling" in message, "a loop is above the ceiling"
     assert_i1_contract(message)
 
@@ -135,5 +154,5 @@ def test_snapshot_reports_route_state():
     snapshot = tracker_with_a_route().snapshot()
     assert snapshot["turns_recorded"] == 3
     assert snapshot["has_route"] is True
-    assert snapshot["best_turn_index"] == 0
+    assert snapshot["best_turn_index"] == 1
     assert snapshot["novelty_floor"] == NOVELTY_FLOOR

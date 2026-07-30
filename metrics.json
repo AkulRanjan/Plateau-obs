@@ -10030,5 +10030,184 @@
         }
       }
     }
+  },
+  "long_trace_comparison": {
+    "encoder": {
+      "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "dim": 384,
+      "seed": 1337,
+      "probe_sha256": "024c4c5f0ea366bca548bcf4a42ee77b835fa771296b1a595e454fd8b3518364"
+    },
+    "scope_note": "trace classes are hand-written and defined in eval/traces.py, not handed down in \u00a79; non-synthetic traces come from TRAIL (gated, human-downloaded, never committed)",
+    "traces": {
+      "runaway_paraphrase_loop": {
+        "turns": 61,
+        "should_trip": true
+      },
+      "paraphrase_loop_varied_wording": {
+        "turns": 61,
+        "should_trip": true
+      },
+      "healthy_invoice_batch": {
+        "turns": 61,
+        "should_trip": false
+      },
+      "unreachable_target": {
+        "turns": 16,
+        "should_trip": true
+      },
+      "healthy_poller": {
+        "turns": 36,
+        "should_trip": false
+      }
+    },
+    "detectors": {
+      "plateau": {
+        "detection_turn_index": {
+          "runaway_paraphrase_loop": 9,
+          "paraphrase_loop_varied_wording": null,
+          "healthy_invoice_batch": null,
+          "unreachable_target": 12,
+          "healthy_poller": 9
+        },
+        "recall": 0.6666666666666666,
+        "false_trip_rate": 0.5,
+        "missed": [
+          "paraphrase_loop_varied_wording"
+        ],
+        "false_trips": [
+          "healthy_poller"
+        ],
+        "mean_turns_to_detection": 10.5
+      },
+      "plateau_action_only": {
+        "detection_turn_index": {
+          "runaway_paraphrase_loop": 5,
+          "paraphrase_loop_varied_wording": 5,
+          "healthy_invoice_batch": 5,
+          "unreachable_target": 5,
+          "healthy_poller": 5
+        },
+        "recall": 1.0,
+        "false_trip_rate": 1.0,
+        "missed": [],
+        "false_trips": [
+          "healthy_invoice_batch",
+          "healthy_poller"
+        ],
+        "mean_turns_to_detection": 5.0
+      },
+      "plateau_novelty_only": {
+        "detection_turn_index": {
+          "runaway_paraphrase_loop": 12,
+          "paraphrase_loop_varied_wording": null,
+          "healthy_invoice_batch": null,
+          "unreachable_target": 12,
+          "healthy_poller": 12
+        },
+        "recall": 0.6666666666666666,
+        "false_trip_rate": 0.5,
+        "missed": [
+          "paraphrase_loop_varied_wording"
+        ],
+        "false_trips": [
+          "healthy_poller"
+        ],
+        "mean_turns_to_detection": 12.0
+      },
+      "exact_match": {
+        "detection_turn_index": {
+          "runaway_paraphrase_loop": null,
+          "paraphrase_loop_varied_wording": null,
+          "healthy_invoice_batch": null,
+          "unreachable_target": null,
+          "healthy_poller": null
+        },
+        "recall": 0.0,
+        "false_trip_rate": 0.0,
+        "missed": [
+          "runaway_paraphrase_loop",
+          "paraphrase_loop_varied_wording",
+          "unreachable_target"
+        ],
+        "false_trips": [],
+        "mean_turns_to_detection": null
+      },
+      "exact_args": {
+        "detection_turn_index": {
+          "runaway_paraphrase_loop": null,
+          "paraphrase_loop_varied_wording": null,
+          "healthy_invoice_batch": null,
+          "unreachable_target": null,
+          "healthy_poller": 7
+        },
+        "recall": 0.0,
+        "false_trip_rate": 0.5,
+        "missed": [
+          "runaway_paraphrase_loop",
+          "paraphrase_loop_varied_wording",
+          "unreachable_target"
+        ],
+        "false_trips": [
+          "healthy_poller"
+        ],
+        "mean_turns_to_detection": null
+      },
+      "lexical": {
+        "detection_turn_index": {
+          "runaway_paraphrase_loop": 8,
+          "paraphrase_loop_varied_wording": null,
+          "healthy_invoice_batch": null,
+          "unreachable_target": 8,
+          "healthy_poller": null
+        },
+        "recall": 0.6666666666666666,
+        "false_trip_rate": 0.0,
+        "missed": [
+          "paraphrase_loop_varied_wording"
+        ],
+        "false_trips": [],
+        "mean_turns_to_detection": 8.0
+      },
+      "step_cap_25": {
+        "detection_turn_index": {
+          "runaway_paraphrase_loop": 27,
+          "paraphrase_loop_varied_wording": 27,
+          "healthy_invoice_batch": 27,
+          "unreachable_target": null,
+          "healthy_poller": 27
+        },
+        "recall": 0.6666666666666666,
+        "false_trip_rate": 1.0,
+        "missed": [
+          "unreachable_target"
+        ],
+        "false_trips": [
+          "healthy_invoice_batch",
+          "healthy_poller"
+        ],
+        "mean_turns_to_detection": 27.0
+      },
+      "step_cap_10007": {
+        "detection_turn_index": {
+          "runaway_paraphrase_loop": null,
+          "paraphrase_loop_varied_wording": null,
+          "healthy_invoice_batch": null,
+          "unreachable_target": null,
+          "healthy_poller": null
+        },
+        "recall": 0.0,
+        "false_trip_rate": 0.0,
+        "missed": [
+          "runaway_paraphrase_loop",
+          "paraphrase_loop_varied_wording",
+          "unreachable_target"
+        ],
+        "false_trips": [],
+        "mean_turns_to_detection": null
+      }
+    },
+    "perfect_detectors": []
   }
 }
