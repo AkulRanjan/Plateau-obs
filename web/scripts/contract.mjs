@@ -294,6 +294,41 @@ for (const f of fixturesDoc.fixtures ?? []) {
   );
 }
 
+// 12. Split-screen: the unguarded pane must run exactly to the step-cap, its
+//     first turns must be the real trace, and — importantly — the cost gap it
+//     shows must be the SAME number the hero reports as tokens saved. Two
+//     panels quoting different savings would be the most damaging kind of
+//     inconsistency on a projector.
+const ung = await import(resolve(HERE, "../src/data/unguarded.js"));
+
+check(
+  ung.UNGUARDED_RUN.length === STEP_CAP,
+  `the unguarded run is ${ung.UNGUARDED_RUN.length} turns; it must reach exactly the step-cap (${STEP_CAP})`
+);
+
+const realPrefix = ung.UNGUARDED_RUN.slice(0, TRACE.length);
+const prefixMatches = realPrefix.every(
+  (t, i) => t.tool === TRACE[i].tool && t.args === TRACE[i].args && t.real === true
+);
+check(
+  prefixMatches,
+  "the unguarded pane's first turns are not the recorded trace — both panes must " +
+    "start from the same run or the comparison is not the same trace"
+);
+check(
+  ung.UNGUARDED_RUN.slice(TRACE.length).every((t) => t.real === false),
+  "projected turns past the trace are not flagged real:false — the pane labels " +
+    "them as a projection, so the data must say so too"
+);
+
+const splitSaving = (STEP_CAP - TRIP_TURN) * TOKENS_PER_TURN;
+const heroSaving = turnsSpared * TOKENS_PER_TURN;
+check(
+  splitSaving === heroSaving,
+  `split-screen shows ${splitSaving} tokens saved but the hero shows ${heroSaving}; ` +
+    `the two panels must quote the same number`
+);
+
 // --- report ----------------------------------------------------------------
 if (problems.length) {
   console.error(`\ndemo CONTRACT FAILED — ${problems.length} problem(s):\n`);
@@ -316,5 +351,7 @@ console.log(
     `\n  recovery        : escape -> turn ${route.turn} (nov ${route.novelty}), probe ${epi.PROBE_NOVELTY} passes, ` +
     `ends CLOSED, costs ${rec.COST_OF_A_FALSE_TRIP_IN_TURNS} turn` +
     `\n  measured panel  : ${fixturesDoc.fixtures.length} fixtures in sync with metrics.json, ` +
-    `no recall/sweep leakage\n`
+    `no recall/sweep leakage` +
+    `\n  split screen    : unguarded runs 1..${STEP_CAP}, guarded freezes at ${TRIP_TURN}, ` +
+    `both panels quote ${splitSaving.toLocaleString("en-US")} tokens\n`
 );
