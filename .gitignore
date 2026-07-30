@@ -1,0 +1,40 @@
+# --- Rule 5: gated / third-party / large artefacts are never committed -------
+# TRAIL is a gated dataset (PatronusAI/TRAIL). Its terms forbid resharing.
+# A human downloads it locally; it must never enter this repository.
+data/trail/
+
+# Cloned baseline source repos. We port functions *with provenance headers*
+# into plateau/baselines/ and credit them in THIRD_PARTY_NOTICES.md; we do not
+# vendor the upstream trees themselves.
+third_party/
+
+# MiniLM weights (~90 MB) live here after the one-time download.
+models/
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- Editors / OS ------------------------------------------------------------
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+*~
+
+# --- Run outputs -------------------------------------------------------------
+# metrics.json IS committed: it is the only place numbers are allowed to come
+# from, so it must be reviewable in the diff. Scratch run dirs are not.
+runs/
+*.log

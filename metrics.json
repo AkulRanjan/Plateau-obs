@@ -1,0 +1,45 @@
+{
+  "gate1_premise": {
+    "encoder": {
+      "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "dim": 384,
+      "seed": 1337,
+      "probe_sha256": "024c4c5f0ea366bca548bcf4a42ee77b835fa771296b1a595e454fd8b3518364"
+    },
+    "checks": [
+      {
+        "label": "action paraphrase   (same intent, reworded)",
+        "text_a": "search_docs(q='auth token refresh')",
+        "text_b": "search_docs(q='how do I refresh a token')",
+        "cosine": 0.89273,
+        "expected": ">= 0.75",
+        "passed": true
+      },
+      {
+        "label": "action batch        (same tool, next item)",
+        "text_a": "extract_text(f='invoice_041.pdf')",
+        "text_b": "extract_text(f='invoice_042.pdf')",
+        "cosine": 0.991297,
+        "expected": ">= 0.90",
+        "passed": true
+      },
+      {
+        "label": "observation content (different invoices)",
+        "text_a": "ACME Corp, Rs 84,200, due Aug 12",
+        "text_b": "Vertex Ltd, Rs 19,750, due Aug 30",
+        "cosine": 0.560845,
+        "expected": "LOW",
+        "passed": true
+      }
+    ],
+    "scale_reference": {
+      "identical string (novelty floor)": 1.0,
+      "same format, different content (check 3)": 0.560845,
+      "unrelated domains": -0.047997,
+      "different tool entirely": 0.185521
+    },
+    "separation_margin": 0.331885,
+    "gate_passed": true
+  }
+}
