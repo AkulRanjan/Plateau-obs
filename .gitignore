@@ -31,6 +31,7 @@ htmlcov/
 # dependency tree and every version is pinned without a range.
 web/node_modules/
 web/dist/
+web/dist-ssr/
 web/.vite/
 
 # --- Editors / OS ------------------------------------------------------------
