@@ -152,6 +152,23 @@ SURVEY: list[tuple[str, dict]] = [
 
 
 @dataclass
+class RunResult:
+    """What one agent run produced. Returned by `run()` for tests and callers."""
+
+    mode: str
+    turns: list["Turn"]
+    trip_turn: int | None
+    turns_executed: int
+    refused: int
+    encoder: object | None
+    summary: dict
+
+    @property
+    def tripped(self) -> bool:
+        return self.trip_turn is not None
+
+
+@dataclass
 class Turn:
     n: int
     mode: str
@@ -187,7 +204,11 @@ class Reporter:
     RESET = "\033[0m"
     DIM = "\033[2m"
 
-    def __init__(self, mode: str, collector: str | None, run_id: str) -> None:
+    def __init__(
+        self, mode: str, collector: str | None, run_id: str, quiet: bool = False
+    ) -> None:
+        self.quiet = quiet
+        self.turns: list[Turn] = []
         self.mode = mode
         self.collector = collector.rstrip("/") if collector else None
         self.run_id = run_id
@@ -199,6 +220,8 @@ class Reporter:
         self._post_failures = 0
 
     def header(self, model_name: str, digest: str) -> None:
+        if self.quiet:
+            return
         title = "WITH PLATEAU" if self.mode == "plateau" else "UNGUARDED"
         print(f"\n{'=' * 78}")
         print(f"  {title}   model={model_name}   digest={digest}")
@@ -211,8 +234,13 @@ class Reporter:
         print(f"{'=' * 78}\n")
 
     def turn(self, t: Turn) -> None:
+        self.turns.append(t)
         self._log.write(json.dumps(t.as_event()) + "\n")
         self._log.flush()
+
+        if self.quiet:
+            self._post(t)
+            return
 
         colour = self.COLOR.get(t.state, "")
         head = f"  {t.n:>3}  "
@@ -254,6 +282,12 @@ class Reporter:
                 )
 
     def finish(self, summary: dict) -> None:
+        if self.quiet:
+            self._log.write(json.dumps({"summary": summary}) + "\n")
+            self._log.close()
+            if self._client:
+                self._client.close()
+            return
         self._log.write(json.dumps({"summary": summary}) + "\n")
         self._log.close()
         if self._client:
@@ -297,16 +331,29 @@ def run(
     model_name: str,
     max_turns: int,
     delay: float,
-) -> int:
+    model=None,
+    quiet: bool = False,
+) -> RunResult:
+    """Drive one agent to completion and return what happened.
+
+    `model` and `quiet` exist so tests can drive this loop with a scripted fake
+    and no network. Both default to today's behaviour: build a real model, print
+    a full pane. Nothing about the run changes when they are omitted.
+    """
     run_id = time.strftime("%H%M%S")
 
     collector, provenance = resolve_collector(collector)
     if collector:
         preflight(collector, provenance)
 
-    reporter = Reporter(mode, collector, run_id)
+    reporter = Reporter(mode, collector, run_id, quiet=quiet)
 
-    model = build_model(model_kind, model=model_name) if model_kind == "ollama" else build_model(model_kind)
+    if model is None:
+        model = (
+            build_model(model_kind, model=model_name)
+            if model_kind == "ollama"
+            else build_model(model_kind)
+        )
     digest = model.digest() if hasattr(model, "digest") else "n/a"
     reporter.header(model.name, digest)
 
@@ -455,7 +502,15 @@ def run(
     if encoder is not None:
         summary["encoder calls"] = encoder.n_encode_calls
     reporter.finish(summary)
-    return 0
+    return RunResult(
+        mode=mode,
+        turns=reporter.turns,
+        trip_turn=trip_turn,
+        turns_executed=turns_executed,
+        refused=refused,
+        encoder=encoder,
+        summary=summary,
+    )
 
 
 def main() -> int:
@@ -467,7 +522,8 @@ def main() -> int:
     p.add_argument("--max-turns", type=int, default=DEFAULT_MAX_TURNS)
     p.add_argument("--delay", type=float, default=0.0, help="pause between turns, for pacing the video")
     a = p.parse_args()
-    return run(a.mode, a.collector, a.model_kind, a.model, a.max_turns, a.delay)
+    run(a.mode, a.collector, a.model_kind, a.model, a.max_turns, a.delay)
+    return 0
 
 
 if __name__ == "__main__":
