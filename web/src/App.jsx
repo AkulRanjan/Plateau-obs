@@ -5,6 +5,7 @@ import Controls from "./components/Controls.jsx";
 import DetectorRace from "./components/DetectorRace.jsx";
 import GlassPanel, { PanelHead } from "./components/GlassPanel.jsx";
 import Hero from "./components/Hero.jsx";
+import MeasuredFixtures from "./components/MeasuredFixtures.jsx";
 import QuadrantMap, { Legend } from "./components/QuadrantMap.jsx";
 import RecoveryStrip from "./components/RecoveryStrip.jsx";
 import StatusBar from "./components/StatusBar.jsx";
@@ -143,6 +144,8 @@ export default function App() {
             onAdvance={advanceRecovery}
           />
         )}
+
+        <MeasuredFixtures />
 
         <footer className="mt-4 flex flex-wrap justify-between gap-3.5 pt-1 font-mono text-[11px] text-faint">
           <span>

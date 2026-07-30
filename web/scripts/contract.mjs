@@ -253,6 +253,47 @@ check(
 );
 check(finalRecovery.probePassed, "the probe does not pass, so the breaker never closes");
 
+// 11. The measured-fixtures panel must stay measured, and must stay honest.
+const fixturesRaw = readFileSync(
+  resolve(HERE, "../src/data/fixtures.json"),
+  "utf8"
+);
+const fixturesDoc = JSON.parse(fixturesRaw);
+
+// Not-yet-valid numbers must never reach a jury-facing panel. Fixtures 1 and 2
+// are two turns long and cannot trip, so recall and the sweep built on them are
+// artifacts rather than results.
+const FORBIDDEN = ["recall", "sweep", "usable_window", "n_usable_configs", "false_trip_rate"];
+const leaked = FORBIDDEN.filter((k) => fixturesRaw.includes(`"${k}"`));
+check(
+  leaked.length === 0,
+  `fixtures.json contains not-yet-valid keys: ${leaked.join(", ")}. Recall and ` +
+    `the sweep are artifacts of the two-turn fixtures and must not be shown.`
+);
+
+// And it must actually be in sync with metrics.json, or the panel is stale.
+const metrics = JSON.parse(
+  readFileSync(resolve(HERE, "../../metrics.json"), "utf8")
+);
+const srcFixtures = metrics.detector_fixtures;
+check(
+  fixturesDoc.encoder?.revision === srcFixtures?.encoder?.revision,
+  `fixtures.json encoder revision ${fixturesDoc.encoder?.revision} != ` +
+    `metrics.json ${srcFixtures?.encoder?.revision} — run npm run extract-metrics`
+);
+check(
+  fixturesDoc.fixtures?.length === Object.keys(srcFixtures?.fixtures ?? {}).length,
+  `fixtures.json has ${fixturesDoc.fixtures?.length} fixtures, metrics.json has ` +
+    `${Object.keys(srcFixtures?.fixtures ?? {}).length} — run npm run extract-metrics`
+);
+for (const f of fixturesDoc.fixtures ?? []) {
+  const orig = srcFixtures.fixtures[f.key];
+  check(
+    orig && orig.trip_turn === f.trip_turn,
+    `fixtures.json ${f.key} trip_turn ${f.trip_turn} != metrics.json ${orig?.trip_turn}`
+  );
+}
+
 // --- report ----------------------------------------------------------------
 if (problems.length) {
   console.error(`\ndemo CONTRACT FAILED — ${problems.length} problem(s):\n`);
@@ -273,5 +314,7 @@ console.log(
     `\n  race (computed) : Plateau ${TRIP_TURN} · ablation ${ablation} (batch, false trip) · ` +
     `lexical/exact-match/exact-args/step-cap all never` +
     `\n  recovery        : escape -> turn ${route.turn} (nov ${route.novelty}), probe ${epi.PROBE_NOVELTY} passes, ` +
-    `ends CLOSED, costs ${rec.COST_OF_A_FALSE_TRIP_IN_TURNS} turn\n`
+    `ends CLOSED, costs ${rec.COST_OF_A_FALSE_TRIP_IN_TURNS} turn` +
+    `\n  measured panel  : ${fixturesDoc.fixtures.length} fixtures in sync with metrics.json, ` +
+    `no recall/sweep leakage\n`
 );
