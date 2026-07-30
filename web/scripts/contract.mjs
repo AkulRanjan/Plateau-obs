@@ -11,6 +11,7 @@
  *
  *   npm run contract
  */
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -196,6 +197,62 @@ if (ablation !== null) {
   );
 }
 
+// 10. Recovery (claim 4) must hold, and must stay out of deriveState.
+const rec = await import(resolve(HERE, "../src/lib/deriveRecovery.js"));
+const epi = await import(resolve(HERE, "../src/data/epilogue.js"));
+const route = rec.escapeVector();
+
+check(
+  epi.PROBE_NOVELTY >= NOVELTY_FLOOR,
+  `probe novelty ${epi.PROBE_NOVELTY} is below the floor ${NOVELTY_FLOOR}; the probe must pass`
+);
+check(
+  rec.COST_OF_A_FALSE_TRIP_IN_TURNS === 1,
+  `a false trip costs ${rec.COST_OF_A_FALSE_TRIP_IN_TURNS} turns; the claim is one`
+);
+check(route !== null && route.hasRoute, "no escape vector clears the novelty floor");
+check(
+  route === null || route.turn > 1,
+  `the escape vector points at turn ${route?.turn}. Turn 1 reads novelty 1.00 ` +
+    `only because the window starts empty — pointing a stuck agent at the first ` +
+    `thing it did is not a route.`
+);
+// The escape vector should be the best real reading, so verify nothing after
+// turn 1 beats it.
+const bestAfterOpening = Math.max(...allRows.filter((r) => r.turn > 1).map((r) => r.nov));
+check(
+  route === null || Math.abs(route.novelty - bestAfterOpening) < 1e-9,
+  `escape vector novelty ${route?.novelty} is not the highest after turn 1 (${bestAfterOpening})`
+);
+
+// Structural: recovery must not reach into the frozen predicate.
+const recSrc = readFileSync(
+  resolve(HERE, "../src/lib/deriveRecovery.js"),
+  "utf8"
+);
+// Comments may (and do) mention deriveState to explain the separation; what
+// must not exist is a real dependency on it.
+const recCode = recSrc
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/(^|[^:])\/\/.*$/gm, "$1");
+check(
+  !/deriveState/.test(recCode),
+  "deriveRecovery.js depends on deriveState — recovery must stay a separate " +
+    "reducer so the frozen trip predicate keeps its parity guarantee"
+);
+check(
+  !/from\s+["'][^"']*deriveState/.test(recSrc),
+  "deriveRecovery.js imports deriveState; the two reducers must not interleave"
+);
+
+// The recovery sequence must terminate in CLOSED, or the claim is unproven.
+const finalRecovery = rec.deriveRecovery(epi.EPILOGUE.length - 1);
+check(
+  finalRecovery.done && finalRecovery.state === "CLOSED",
+  `recovery ends in state ${finalRecovery.state}; it must reach CLOSED`
+);
+check(finalRecovery.probePassed, "the probe does not pass, so the breaker never closes");
+
 // --- report ----------------------------------------------------------------
 if (problems.length) {
   console.error(`\ndemo CONTRACT FAILED — ${problems.length} problem(s):\n`);
@@ -214,5 +271,7 @@ console.log(
     `\n  batch protected : ${batchRows.length} turns, sim ${batchSims} — all above the floor` +
     `\n  dot integrity   : ${allRows.length} turns, position agrees with quadrant, all in bounds` +
     `\n  race (computed) : Plateau ${TRIP_TURN} · ablation ${ablation} (batch, false trip) · ` +
-    `lexical/exact-match/exact-args/step-cap all never\n`
+    `lexical/exact-match/exact-args/step-cap all never` +
+    `\n  recovery        : escape -> turn ${route.turn} (nov ${route.novelty}), probe ${epi.PROBE_NOVELTY} passes, ` +
+    `ends CLOSED, costs ${rec.COST_OF_A_FALSE_TRIP_IN_TURNS} turn\n`
 );
