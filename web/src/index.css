@@ -1,0 +1,308 @@
+@import "tailwindcss";
+
+/* --------------------------------------------------------------------------
+ * Design tokens. These are the draft's palette, promoted into Tailwind v4's
+ * @theme so they exist both as utilities (bg-surface, text-cyan) and as raw
+ * CSS vars (var(--color-cyan)) for the SVG layer below.
+ * ------------------------------------------------------------------------ */
+@theme {
+  --color-bg: #0a1417;
+  --color-bg2: #0e1e23;
+  --color-surface: #11272e;
+  --color-line: #1c3b44;
+  --color-line-soft: #16323a;
+
+  --color-ink: #e6f1f3;
+  --color-muted: #88a6af;
+  /* Lightened from the draft's #5a7982, which measured 3.32-3.99:1 against
+   * these surfaces — below the 4.5:1 bar for small text, and this token carries
+   * turn indices, axis labels and captions at 8.5-11px. #7b949b measures
+   * 4.84:1 at worst while staying a clear step below --color-muted.
+   * Enforced by scripts/contrast.mjs. */
+  --color-faint: #7b949b;
+
+  --color-cyan: #25e0c8;
+  --color-violet: #9e86ff;
+  --color-amber: #f5b23d;
+  --color-red: #ff5a47;
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* Non-themed vars: --accent is swapped per breaker state at runtime, and
+ * --bg-glass is the SOLID panel fill. Only StatusBar and Hero are permitted to
+ * layer backdrop-filter on top of it; every other panel uses it flat, because
+ * stacked backdrop-blur over the aurora is what drops frames on integrated
+ * GPUs. */
+:root {
+  --accent: var(--color-cyan);
+  --bg-glass: #0f2228;
+  --bg-glass-blur: color-mix(in srgb, #0f2228 82%, transparent);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --------------------------------------------------------------------------
+ * SVG layer. Kept as real CSS rather than utilities: SVG presentation
+ * attributes don't map cleanly onto Tailwind, and this is where the chart's
+ * legibility lives — one place to audit contrast.
+ * ------------------------------------------------------------------------ */
+@layer components {
+  /* ---------------------------------------------------------------- aurora --
+   * Three radial gradients, animated on transform/opacity only. No blur
+   * filter: a soft radial falloff already reads as a blurred blob at a
+   * fraction of the cost. Fully stopped when data-active="0".
+   * ------------------------------------------------------------------------ */
+  .pl-aurora {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background: radial-gradient(120% 80% at 50% -10%, #123039 0%, var(--color-bg) 55%);
+  }
+
+  .pl-aurora-blob {
+    position: absolute;
+    display: block;
+    width: 68vmax;
+    height: 68vmax;
+    border-radius: 50%;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .pl-aurora-blob--1 {
+    top: -30vmax;
+    left: -16vmax;
+    opacity: 0.55;
+    background: radial-gradient(
+      closest-side,
+      color-mix(in srgb, var(--color-cyan) 24%, transparent),
+      transparent
+    );
+  }
+  .pl-aurora-blob--2 {
+    top: -22vmax;
+    right: -22vmax;
+    opacity: 0.4;
+    background: radial-gradient(
+      closest-side,
+      color-mix(in srgb, var(--color-violet) 22%, transparent),
+      transparent
+    );
+  }
+  .pl-aurora-blob--3 {
+    bottom: -34vmax;
+    left: 22vmax;
+    opacity: 0.32;
+    background: radial-gradient(
+      closest-side,
+      color-mix(in srgb, #1d7f8c 30%, transparent),
+      transparent
+    );
+  }
+
+  /* will-change only while animating, so the three full-viewport layers get
+   * discarded the moment the aurora stops. */
+  .pl-aurora[data-active="1"] .pl-aurora-blob {
+    will-change: transform, opacity;
+  }
+  .pl-aurora[data-active="1"] .pl-aurora-blob--1 {
+    animation: pl-drift-1 34s ease-in-out infinite;
+  }
+  .pl-aurora[data-active="1"] .pl-aurora-blob--2 {
+    animation: pl-drift-2 44s ease-in-out infinite;
+  }
+  .pl-aurora[data-active="1"] .pl-aurora-blob--3 {
+    animation: pl-drift-3 52s ease-in-out infinite;
+  }
+
+  /* Static. Gives the panels an edge to sit against; never animates. */
+  .pl-aurora-grid {
+    position: absolute;
+    inset: 0;
+    display: block;
+    opacity: 0.4;
+    background-image: linear-gradient(var(--color-line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-line-soft) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(120% 90% at 50% 0%, #000 30%, transparent 80%);
+  }
+
+  /* ----------------------------------------------------------------- panel --
+   * Solid fill. `--pl-panel--blur` is the only opt-in to backdrop-filter and
+   * belongs to StatusBar and Hero alone.
+   * ------------------------------------------------------------------------ */
+  .pl-panel {
+    position: relative;
+    background: var(--bg-glass);
+    border: 1px solid var(--color-line-soft);
+    border-radius: 14px;
+    padding: 18px;
+  }
+
+  .pl-panel--blur {
+    background: var(--bg-glass-blur);
+    -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    backdrop-filter: blur(14px) saturate(1.15);
+  }
+
+  /* ------------------------------------------------------------------- led --
+   * The state indicator. CSS-owned: it is decorative, it runs continuously,
+   * and neither animation library should be spending a frame budget on it.
+   * ------------------------------------------------------------------------ */
+  .pl-led {
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pl-pulse 1.6s ease-in-out infinite;
+  }
+
+  /* OPEN is the one state that gets an insistent treatment, because a halted
+   * run has to read as halted from the back of a room. */
+  [data-plateau-pill][data-state="open"] {
+    animation: pl-alarm 0.9s steps(2) infinite;
+  }
+
+  .pl-grid-l {
+    stroke: var(--color-line-soft);
+    stroke-width: 1;
+  }
+
+  .pl-axis-t {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    fill: var(--color-faint);
+  }
+
+  /* The accumulated-novelty curve. Motion owns its pathLength. */
+  .pl-line {
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  /* Quadrant dividers. Dashed while cold, solid once calibrated. */
+  .pl-div {
+    stroke: var(--color-muted);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    opacity: 0.75;
+  }
+  .pl-div--cold {
+    opacity: 0.35;
+  }
+
+  /* Divider + corner labels must stay readable over the zone tints, so these
+   * sit at --color-muted rather than --color-faint. */
+  .pl-div-t {
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    fill: var(--color-muted);
+  }
+  .pl-corner {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    opacity: 0.9;
+  }
+  .pl-axlabel {
+    font-size: 8.5px;
+    fill: var(--color-faint);
+  }
+
+  /* Glow is deliberately scarce: only the live dot and the trip marker get a
+   * drop-shadow. Per-frame SVG filters stack and are the single most expensive
+   * thing in this view. */
+  .pl-glow {
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Aurora drift. transform + opacity only — every frame stays on the
+ * compositor, nothing touches layout or paint.
+ * ------------------------------------------------------------------------ */
+@keyframes pl-drift-1 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(6vmax, 4vmax, 0) scale(1.12);
+    opacity: 0.38;
+  }
+}
+
+@keyframes pl-drift-2 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.06);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate3d(-7vmax, 6vmax, 0) scale(1);
+    opacity: 0.26;
+  }
+}
+
+@keyframes pl-drift-3 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.32;
+  }
+  50% {
+    transform: translate3d(5vmax, -5vmax, 0) scale(1.15);
+    opacity: 0.2;
+  }
+}
+
+@keyframes pl-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes pl-alarm {
+  50% {
+    background: color-mix(in srgb, var(--color-red) 22%, transparent);
+  }
+}
+
+/* Belt and braces: AuroraBackground already sets data-active="0" under reduced
+ * motion, but if any animation is ever added outside that gate, this stops it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
