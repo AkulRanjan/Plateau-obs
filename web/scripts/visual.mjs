@@ -21,8 +21,12 @@
  * every Framer Motion element screenshots at opacity 0 and the whole report is
  * a lie. Real time only.
  *
- *   npm run visual              # console view
- *   npm run visual -- --split   # split-screen view
+ *   npm run visual                              # console view, run to the halt
+ *   npm run visual -- --split                   # split-screen view
+ *   node scripts/visual.mjs --wait=3000 --midplay   # part-way through the run
+ *
+ * --midplay drops the "must have reached the halt" assertion, for checking how
+ * the page looks while it is still playing.
  *
  * Requires a dev or preview server on --url (default http://localhost:5173)
  * and Chrome started with --remote-debugging-port=9222. `npm run visual` starts
@@ -46,6 +50,8 @@ const has = (name) => args.includes(`--${name}`);
 const URL_ = flag("url", "http://localhost:5173/");
 const WAIT_MS = Number(flag("wait", "20000"));
 const SPLIT = has("split");
+// Mid-play: the run has deliberately not finished, so do not assert the halt.
+const MIDPLAY = has("midplay");
 const WIDTH = Number(flag("width", "1920"));
 const HEIGHT = Number(flag("height", SPLIT ? "1500" : "2600"));
 const CDP = flag("cdp", "http://127.0.0.1:9222");
@@ -173,6 +179,10 @@ const probe = await send("Runtime.evaluate", {
       if (s.display === 'none' || s.visibility === 'hidden') return false;
       if (Number(s.opacity) > 0.05) return false;
       if (el.hasAttribute('aria-hidden')) return false;
+      // Some elements are SUPPOSED to be invisible right now — the detector-race
+      // pins stay at opacity 0 until their fire turn. They opt out explicitly so
+      // this check keeps meaning "an animation never finished".
+      if (el.closest('[data-plateau-gated]')) return false;
       return (el.textContent || '').trim().length > 0;
     }).slice(0, 8).map(el => el.tagName + '.' + (el.className || '').toString().slice(0, 40));
 
@@ -239,7 +249,7 @@ check(
   `failed requests:\n      ${failedRequests.slice(0, 8).join("\n      ")}`
 );
 check(
-  d.reachedTrip,
+  MIDPLAY || d.reachedTrip,
   "the run never reached 'OPEN · plateau detected' — auto-play or the halt is broken"
 );
 check(
@@ -263,7 +273,7 @@ console.log(
     `\n  url            : ${URL_}` +
     `\n  screenshot     : ${shotPath}` +
     `\n  turn           : ${d.turnPill ?? "?"}` +
-    `\n  reached trip   : ${d.reachedTrip}` +
+    `\n  reached trip   : ${d.reachedTrip}${MIDPLAY ? " (mid-play, not asserted)" : ""}` +
     `\n  telemetry rows : ${d.telemetryVisible}/${d.telemetryRows} visible` +
     `\n  numbers on page: ${d.bigNumbers.join(", ") || "none"}` +
     `\n  console errors : ${consoleErrors.length}` +
