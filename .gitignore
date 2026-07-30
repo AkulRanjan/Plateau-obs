@@ -50,3 +50,5 @@ runs/
 web/.visual/
 
 demo/run-*.jsonl
+
+demo/collector.url

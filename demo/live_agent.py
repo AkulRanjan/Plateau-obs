@@ -48,6 +48,50 @@ from demo.live_world import (  # noqa: E402
     render_call,
 )
 
+#: Written by demo/collector.py on boot. Read when --collector is omitted, so an
+#: agent on the collector's own machine needs no address at all.
+COLLECTOR_URL_FILE = ROOT / "demo" / "collector.url"
+
+
+def resolve_collector(explicit: str | None) -> tuple[str | None, str]:
+    """Work out where to post, and say where the answer came from.
+
+    Returns (url, provenance). `url` is None when no collector is configured,
+    which is a supported mode: the agent still prints a full local pane.
+    """
+    if explicit:
+        return explicit.rstrip("/"), "--collector"
+    if COLLECTOR_URL_FILE.exists():
+        published = COLLECTOR_URL_FILE.read_text(encoding="utf-8").strip()
+        if published:
+            return published.rstrip("/"), f"{COLLECTOR_URL_FILE.name} (published by the collector)"
+    return None, "not configured"
+
+
+def preflight(url: str, provenance: str) -> None:
+    """Confirm the collector answers BEFORE the run starts.
+
+    Previously the agent discovered an unreachable collector only in its closing
+    summary — after every turn had already been posted into the void. That
+    happened three times in one evening because the wifi reassigned the IP, and
+    each time it cost a full take. Failing here costs two seconds.
+    """
+    probe = f"{url}/state"
+    try:
+        response = httpx.get(probe, timeout=4.0)
+        response.raise_for_status()
+    except Exception as exc:  # noqa: BLE001 - the message matters, not the type
+        raise SystemExit(
+            f"\n  collector unreachable — refusing to start.\n"
+            f"    tried    : {probe}\n"
+            f"    from     : {provenance}\n"
+            f"    error    : {exc.__class__.__name__}: {exc}\n\n"
+            f"  The address is almost certainly stale: this machine's wifi IP has\n"
+            f"  changed repeatedly. Re-read the collector's boot banner for the\n"
+            f"  current one, or run without --collector to record locally only.\n"
+        )
+
+
 SYSTEM_PROMPT = (
     "You are an autonomous engineering agent working in a small repository.\n"
     "Use the provided tools to investigate. Call exactly one tool per turn.\n"
@@ -160,7 +204,9 @@ class Reporter:
         print(f"  {title}   model={model_name}   digest={digest}")
         print(f"  task: {TASK}")
         if self.collector:
-            print(f"  collector: {self.collector}")
+            print(f"  collector: {self.collector}  [reachable]")
+        else:
+            print("  collector: none — recording locally only")
         print(f"  log: {self.log_path.relative_to(ROOT)}")
         print(f"{'=' * 78}\n")
 
@@ -253,6 +299,11 @@ def run(
     delay: float,
 ) -> int:
     run_id = time.strftime("%H%M%S")
+
+    collector, provenance = resolve_collector(collector)
+    if collector:
+        preflight(collector, provenance)
+
     reporter = Reporter(mode, collector, run_id)
 
     model = build_model(model_kind, model=model_name) if model_kind == "ollama" else build_model(model_kind)
@@ -267,6 +318,13 @@ def run(
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": TASK},
     ]
+
+    if max_turns <= len(SURVEY):
+        print(
+            f"\n  note: --max-turns {max_turns} is not more than the {len(SURVEY)}-turn"
+            f" survey,\n        so the model never gets a turn. Use at least"
+            f" {len(SURVEY) + 1}.\n"
+        )
 
     started = time.time()
     turns_executed = 0

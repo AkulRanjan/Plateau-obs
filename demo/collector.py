@@ -32,6 +32,11 @@ from pathlib import Path
 
 TOKENS_PER_TURN = 1850
 
+#: Written on boot so agents on THIS machine need no --collector argument, and
+#: so the current LAN URL is discoverable after the wifi hands out a new address.
+#: Machine-local, gitignored. It changed three times in one evening.
+URL_FILE = Path(__file__).resolve().parent / "collector.url"
+
 _LOCK = threading.Lock()
 _STATE: dict[str, dict] = {
     "plateau": {"turns": [], "done": None, "summary": {}},
@@ -210,10 +215,23 @@ def main() -> int:
     a = p.parse_args()
 
     ip = lan_ip()
+    url = f"http://{ip}:{a.port}"
+
+    # Publish it. An agent on this machine can then omit --collector entirely,
+    # and anyone can cat the file to get the address to hand to the other laptop.
+    try:
+        URL_FILE.write_text(url + "\n", encoding="utf-8")
+        published = f"  published : {URL_FILE.name} (agents here can omit --collector)"
+    except OSError as exc:
+        published = f"  published : FAILED to write {URL_FILE.name}: {exc}"
+
     print(f"\n{'=' * 72}")
     print("  Plateau collector + dashboard")
-    print(f"  dashboard : http://{ip}:{a.port}/   (open this, record this)")
-    print(f"  agents    : --collector http://{ip}:{a.port}")
+    print(f"  dashboard : {url}/   (open this, record this)")
+    print(f"  agents    : --collector {url}")
+    print(published)
+    print(f"  NOTE      : this IP changes when the wifi reassigns it. If an agent")
+    print(f"              cannot post, re-read this banner before blaming the code.")
     print(f"{'=' * 72}\n")
 
     ThreadingHTTPServer((a.host, a.port), Handler).serve_forever()
