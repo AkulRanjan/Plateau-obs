@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion, useSpring } from "framer-motion";
 import { NOVELTY_FLOOR, QUAD, QUAD_NOTE } from "../data/trace.js";
 import { DOT_SPRING } from "../lib/motionTokens.js";
 import {
@@ -31,47 +32,67 @@ const CORNERS = [
  */
 export default function QuadrantMap({ rows, ceiling, warm }) {
   const fx = xN(NOVELTY_FLOOR);
-  const fy = yS(ceiling);
   const live = rows.length ? rows[rows.length - 1] : null;
 
+  // The one quantity in this chart that genuinely moves. Framer Motion owns it;
+  // every coordinate below is derived from the sprung value, so the zone tints,
+  // the divider and its label all travel together as one piece of geometry.
+  const ceilingSpring = useSpring(ceiling, DOT_SPRING);
+  const [animatedCeiling, setAnimatedCeiling] = useState(ceiling);
+
+  useEffect(
+    () => ceilingSpring.on("change", setAnimatedCeiling),
+    [ceilingSpring]
+  );
+  useEffect(() => {
+    ceilingSpring.set(ceiling);
+  }, [ceilingSpring, ceiling]);
+
+  const fy = yS(animatedCeiling);
+
   return (
-    <div className="mx-auto w-full max-w-[340px]">
+    <div className="mx-auto w-full max-w-[400px]">
       <svg
-        viewBox={`0 0 ${SZ} ${SZ}`}
+        viewBox={`0 0 ${SZ + 74} ${SZ}`}
         className="block h-auto w-full"
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Quadrant map of agent turns by observation novelty and action similarity"
       >
-        {/* Zone tints. They resize with the ceiling, so they spring with it. */}
-        <motion.rect
+        {/* Zone tints, frame and dividers are PLAIN SVG.
+            An earlier version used motion.rect / motion.line with `animate` on
+            height / y1 / y2. Motion overwrites the static attribute during its
+            first pass, so SVG received height="undefined" and the console filled
+            with "Expected length" errors on every render. Animating the single
+            ceiling VALUE and deriving the geometry from it is both simpler and
+            more honest: one quantity actually moves, so one spring drives it,
+            and every attribute below is always a real number. */}
+        <rect
           x={P}
           y={P}
           width={fx - P}
-          animate={{ height: fy - P }}
-          transition={DOT_SPRING}
+          height={fy - P}
           fill="color-mix(in srgb, var(--color-red) 8%, transparent)"
         />
-        <motion.rect
+        <rect
           x={fx}
           y={P}
           width={SZ - P - fx}
-          animate={{ height: fy - P }}
-          transition={DOT_SPRING}
+          height={fy - P}
           fill="color-mix(in srgb, var(--color-violet) 7%, transparent)"
         />
-        <motion.rect
+        <rect
           x={P}
+          y={fy}
           width={fx - P}
-          animate={{ y: fy, height: SZ - P - fy }}
-          transition={DOT_SPRING}
+          height={SZ - P - fy}
           fill="color-mix(in srgb, var(--color-amber) 6%, transparent)"
         />
-        <motion.rect
+        <rect
           x={fx}
+          y={fy}
           width={SZ - P - fx}
-          animate={{ y: fy, height: SZ - P - fy }}
-          transition={DOT_SPRING}
+          height={SZ - P - fy}
           fill="color-mix(in srgb, var(--color-cyan) 7%, transparent)"
         />
 
@@ -87,27 +108,29 @@ export default function QuadrantMap({ rows, ceiling, warm }) {
 
         {/* Novelty floor: fixed, never calibrated. */}
         <line x1={fx} y1={P} x2={fx} y2={SZ - P} className="pl-div" />
-        {/* Similarity ceiling: learned, so it moves. */}
-        <motion.line
+        {/* Similarity ceiling: learned, so it moves — 0.90 while cold, dropping
+            to the calibrated value once warm. */}
+        <line
           x1={P}
+          y1={fy}
           x2={SZ - P}
-          animate={{ y1: fy, y2: fy }}
-          transition={DOT_SPRING}
+          y2={fy}
           className={`pl-div ${warm ? "" : "pl-div--cold"}`}
         />
 
         <text x={fx + 4} y={SZ - P + 14} className="pl-div-t">
           novelty floor {NOVELTY_FLOOR.toFixed(2)}
         </text>
-        <motion.text
-          x={P - 6}
-          animate={{ y: fy - 4 }}
-          transition={DOT_SPRING}
+        {/* Right-hand gutter, not the left: anchored "end" at x = PAD - 6 it ran
+            off the viewBox and rendered clipped. */}
+        <text
+          x={SZ - P + 6}
+          y={fy - 4}
           className="pl-div-t"
-          textAnchor="end"
+          textAnchor="start"
         >
           sim ceiling {ceiling.toFixed(2)}
-        </motion.text>
+        </text>
 
         {CORNERS.map((c) => (
           <text
@@ -152,12 +175,20 @@ export default function QuadrantMap({ rows, ceiling, warm }) {
                 transition={DOT_SPRING}
               />
               {isLive && (
+                // The live label has to dodge two things, and both matter most
+                // at the trip — when novelty is 0.00 and similarity is high, the
+                // dot lands in the top-left corner on top of the STUCK label.
+                // So: drop the label below the dot when there is no room above,
+                // and left-align it when the dot is against the left edge rather
+                // than centring it into the margin.
                 <text
                   x={cx}
-                  y={cy - 14}
+                  y={cy > P + 30 ? cy - 14 : cy + 19}
                   className="font-mono text-[8.5px] font-semibold"
                   style={{ fill: QUAD[r.quadrant].c }}
-                  textAnchor="middle"
+                  textAnchor={
+                    cx < P + 26 ? "start" : cx > SZ - P - 26 ? "end" : "middle"
+                  }
                 >
                   turn {r.turn}
                 </text>
