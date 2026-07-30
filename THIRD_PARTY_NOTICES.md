@@ -52,11 +52,11 @@ entry below is filled in with the cloned commit SHA at port time.
 
 | Baseline | Upstream | Licence | Cloned commit SHA | Status |
 | --- | --- | --- | --- | --- |
-| Exact match | `OpenHands/software-agent-sdk`, `openhands-sdk/openhands/sdk/conversation/stuck_detector.py` (`StuckDetector`, `_event_eq`) | MIT | `4b132eddb6cf414841439a46ce42ed2cd66a628a` | CLONED + READ, not yet ported |
+| Exact match | `OpenHands/software-agent-sdk`, `openhands-sdk/openhands/sdk/conversation/stuck_detector.py` (`StuckDetector`, `_event_eq`) | MIT | `4b132eddb6cf414841439a46ce42ed2cd66a628a` | **PORTED** → `eval/baselines/exact_match.py` |
 | Exact args / debounce | published spec at [dev.to/aws](https://dev.to/aws/how-to-prevent-ai-agent-reasoning-loops-from-wasting-tokens-2652); cross-referenced against `aws-samples/sample-why-agents-fail` where the hook is **referenced but not shipped** | MIT-0 (referenced repo) | `08beccadbf753b699465234e52c0a48e087c6606` | **PORTED** → `eval/baselines/exact_args.py` |
 | Step cap | `langchain-ai/langgraph`, `libs/langgraph/langgraph/pregel/_loop.py` + `errors.py` + `_internal/_config.py` (recursion limit) | MIT | `41341457342327166d72fc11952ab28fb61ec0bf` | **PORTED** → `eval/baselines/step_cap.py` |
-| Lexical | `agent-loop-detector` 0.1.0 (PyPI sdist) — **read; the "lexical" description is confirmed** | MIT | sdist 0.1.0 (no public VCS ref found) | DOWNLOADED + READ, not yet ported |
-| Action-only Plateau | this repo (ablation, not a port) | Apache-2.0 | n/a | PLANNED |
+| Lexical | `agent-loop-detector` 0.1.0 (PyPI sdist) — **read; the "lexical" description is confirmed** | MIT | sdist 0.1.0 (no public VCS ref found) | **PORTED** → `eval/baselines/lexical.py` |
+| Action-only Plateau | this repo (ablation, not a port) | Apache-2.0 | n/a | BLOCKED on §6 |
 
 Five baselines, not six. The LangGraph recursion limit **is** the step-cap
 baseline; there is no separate generic step-cap entry. `LimitToolCounts` from
