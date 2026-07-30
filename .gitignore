@@ -46,3 +46,5 @@ desktop.ini
 # from, so it must be reviewable in the diff. Scratch run dirs are not.
 runs/
 *.log
+
+web/.visual/

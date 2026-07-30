@@ -183,7 +183,10 @@ export default function QuadrantMap({ rows, ceiling, warm }) {
                 // than centring it into the margin.
                 <text
                   x={cx}
-                  y={cy > P + 30 ? cy - 14 : cy + 19}
+                  // P + 46, not P + 30: the corner label's own glyphs reach
+                  // roughly y = PAD + 16, so a threshold that only clears the
+                  // baseline still overlaps. scripts/visual.mjs caught this.
+                  y={cy > P + 46 ? cy - 14 : cy + 19}
                   className="font-mono text-[8.5px] font-semibold"
                   style={{ fill: QUAD[r.quadrant].c }}
                   textAnchor={

@@ -15,7 +15,10 @@
     "render": "vite build --ssr scripts/render-entry.jsx --outDir dist-ssr --logLevel error && node dist-ssr/render-entry.js",
     "ownership": "node scripts/ownership.mjs",
     "contrast": "node scripts/contrast.mjs",
-    "offline": "node scripts/offline.mjs"
+    "offline": "node scripts/offline.mjs",
+    "visual": "node scripts/visual.mjs",
+    "visual:split": "node scripts/visual.mjs --split",
+    "verify": "npm run parity && npm run contract && npm run ownership && npm run contrast && npm run render && npm run build && npm run offline && npm run visual && npm run visual:split"
   },
   "dependencies": {
     "@floating-ui/react": "0.27.20",
