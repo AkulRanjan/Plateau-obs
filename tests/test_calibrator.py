@@ -307,7 +307,7 @@ def test_calibrator_is_deterministic():
 
 def test_fixed_parameters_match_the_spec():
     """§5 fixes these and they are never calibrated. Guard against silent drift."""
-    assert NOVELTY_FLOOR == 0.15   # placeholder pending sweep
+    assert NOVELTY_FLOOR == 0.30   # PROVISIONAL, pending sweep
     assert MIN_SAMPLES == 6
     assert K_SIGMA == 2.0
     assert ALPHA == 0.1
