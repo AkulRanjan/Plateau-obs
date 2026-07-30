@@ -16,6 +16,23 @@
  * the Python package's defaults (plateau/calibrator.py ships NOVELTY_FLOOR
  * 0.30). Do not "fix" them to match — the trip turn and every number in the
  * hero copy move if you do. scripts/parity.mjs fails loudly if they drift.
+ *
+ * WHY THE LOOP OBSERVATIONS ARE PARAPHRASES
+ * -----------------------------------------
+ * The draft had the three loop turns return the byte-identical string "No
+ * results found." Running the real baselines over that trace (lib/baselines.js)
+ * showed `agent-loop-detector` firing at turn 12 — one turn BEFORE Plateau —
+ * because identical strings are exactly what lexical Jaccard is built to catch.
+ * A trace of literal repeats does not test Plateau's claim; it tests the one
+ * case where the incumbents already work.
+ *
+ * So the loop now returns three different wordings of the same non-answer.
+ * Novelty is unchanged (0.23 -> 0.06 -> 0.00), because the meaning is
+ * unchanged and novelty is measured on meaning — which is the entire argument.
+ * Lexical and exact matching now miss it; Plateau still trips at 13.
+ *
+ * scripts/parity.mjs asserts that these three `obs` strings are the ONLY
+ * difference from the draft's trace, so nothing else drifted with them.
  * ------------------------------------------------------------------ */
 
 export const NOVELTY_FLOOR = 0.15;
@@ -39,9 +56,11 @@ export const TRACE = [
   { tool: "extract_text",args: "'invoice_041.pdf'",                 obs: "ACME Corp, Rs 84,200, due Aug 12",                   sim: 0.19, nov: 0.51, phase: "batch" },
   { tool: "extract_text",args: "'invoice_042.pdf'",                 obs: "Vertex Ltd, Rs 19,750, due Aug 30",                  sim: 0.99, nov: 0.44, phase: "batch" },
   { tool: "extract_text",args: "'invoice_043.pdf'",                 obs: "Nimbus LLC, Rs 51,300, due Sep 05",                  sim: 0.99, nov: 0.41, phase: "batch" },
+  // The loop's observations are PARAPHRASES of each other, not repeats. See the
+  // note below on why that matters.
   { tool: "search_docs", args: "q='vault access denied fix'",       obs: "No results found.",                                  sim: 0.71, nov: 0.23, phase: "loop" },
-  { tool: "search_docs", args: "q='how to grant vault permission'", obs: "No results found.",                                  sim: 0.88, nov: 0.06, phase: "loop" },
-  { tool: "search_docs", args: "q='oauth secret permission error'", obs: "No results found.",                                  sim: 0.90, nov: 0.00, phase: "loop" },
+  { tool: "search_docs", args: "q='how to grant vault permission'", obs: "Nothing matched that query.",                        sim: 0.88, nov: 0.06, phase: "loop" },
+  { tool: "search_docs", args: "q='oauth secret permission error'", obs: "No documents matched.",                              sim: 0.90, nov: 0.00, phase: "loop" },
   { tool: "vault_get",   args: "'app/oauth/client_secret'",         obs: "PermissionError: access denied to app/oauth.",       sim: 0.85, nov: 0.00, phase: "loop", isError: true },
 ];
 

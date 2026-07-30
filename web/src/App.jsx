@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 
 import AuroraBackground from "./components/AuroraBackground.jsx";
 import Controls from "./components/Controls.jsx";
+import DetectorRace from "./components/DetectorRace.jsx";
 import GlassPanel, { PanelHead } from "./components/GlassPanel.jsx";
 import Hero from "./components/Hero.jsx";
 import QuadrantMap, { Legend } from "./components/QuadrantMap.jsx";
@@ -98,6 +99,22 @@ export default function App() {
             />
           </GlassPanel>
         </div>
+
+        <GlassPanel className="mt-4">
+          <PanelHead
+            label="detector race"
+            sub="same trace, six detectors — who fired, and were they right"
+          />
+          <DetectorRace turn={step} />
+        </GlassPanel>
+
+        <footer className="mt-4 flex flex-wrap justify-between gap-3.5 pt-1 font-mono text-[11px] text-faint">
+          <span>
+            Replaying a recorded trace. In production, turns stream from the live
+            agent — the breaker decision (the C1 novelty gate) is Plateau's.
+          </span>
+          <span className="opacity-70">plateau · v0.1.0</span>
+        </footer>
       </div>
     </div>
   );

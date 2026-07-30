@@ -28,9 +28,13 @@ import {
 /**
  * Derive live breaker + calibrator state from the revealed turns.
  *
- * @param {number} step index of the last revealed turn; -1 = idle
+ * @param {number} step  index of the last revealed turn; -1 = idle
+ * @param {Array}  trace the trace to read. Defaults to the live one; the
+ *   parameter exists so scripts/parity.mjs can run this function over the
+ *   draft's original trace and prove the ALGORITHM is unchanged independently
+ *   of the trace data having moved on. Behaviour with the default is identical.
  */
-export function deriveState(step) {
+export function deriveState(step, trace = TRACE) {
   // step = index of last revealed turn, -1 = idle
   let n = 0; // productive turns (passed novelty gate)
   let streak = 0; // trailing consecutive sub-floor turns
@@ -38,7 +42,7 @@ export function deriveState(step) {
 
   const rows = [];
   for (let i = 0; i <= step; i++) {
-    const t = TRACE[i];
+    const t = trace[i];
     if (t.nov >= NOVELTY_FLOOR) n += 1; // C1 gate: only informative turns teach
     const warm = n >= MIN_SAMPLES;
     const ceiling = warm ? WARM_CEILING : COLD_CEILING;
