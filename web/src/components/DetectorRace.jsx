@@ -169,6 +169,12 @@ export default function DetectorRace({ turn }) {
               />
               {lane.fire !== null ? (
                 <div
+                  // Intentionally invisible until this detector's fire turn is
+                  // reached. `data-plateau-gated` tells scripts/visual.mjs that
+                  // opacity 0 is the designed state here, not an animation that
+                  // failed to finish — otherwise every mid-play run reports these
+                  // six pins as bugs and the check stops being worth reading.
+                  data-plateau-gated
                   className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-center transition-opacity duration-400"
                   style={{
                     left: `${((lane.fire - 1) / (STEP_CAP - 1)) * 100}%`,
