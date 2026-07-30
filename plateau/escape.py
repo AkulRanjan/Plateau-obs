@@ -84,13 +84,20 @@ class EscapeTracker:
     def best(self) -> EscapeCandidate | None:
         """The highest-novelty turn recorded so far, or None if nothing yet.
 
+        Turn 0 is excluded whenever any later turn exists. Its novelty is 1.0 by
+        construction, not by merit: the window is empty on the first turn, so
+        there is nothing for the observation to be redundant with. Left in, it
+        would win every comparison and the escape vector would always point at
+        whatever the agent happened to do first -- which is not advice.
+
         Ties break toward the earlier turn: if two turns were equally
         informative, the earlier one is the safer thing to return to because
         less has been built on top of it.
         """
         if not self.candidates:
             return None
-        return max(self.candidates, key=lambda c: (c.obs_novelty, -c.turn_index))
+        eligible = [c for c in self.candidates if c.turn_index > 0] or self.candidates
+        return max(eligible, key=lambda c: (c.obs_novelty, -c.turn_index))
 
     @property
     def has_route(self) -> bool:
