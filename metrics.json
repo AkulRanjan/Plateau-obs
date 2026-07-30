@@ -41,5 +41,237 @@
     },
     "separation_margin": 0.331885,
     "gate_passed": true
+  },
+  "novelty_floor_probe": {
+    "encoder": {
+      "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "dim": 384,
+      "seed": 1337,
+      "probe_sha256": "024c4c5f0ea366bca548bcf4a42ee77b835fa771296b1a595e454fd8b3518364"
+    },
+    "candidate_floor": 0.15,
+    "candidate_floor_status": "placeholder pending sweep",
+    "readings": [
+      {
+        "class": "poller",
+        "label": "poller: same status, later timestamp",
+        "obs_a": "Job still running, 4m elapsed",
+        "obs_b": "Job still running, 9m elapsed",
+        "novelty": 0.141219,
+        "primary": true
+      },
+      {
+        "class": "true_loop",
+        "label": "true loop: byte-identical observation",
+        "obs_a": "Found 4 results: a.md, b.md, c.md, d.md",
+        "obs_b": "Found 4 results: a.md, b.md, c.md, d.md",
+        "novelty": 0.0,
+        "primary": true
+      },
+      {
+        "class": "batch",
+        "label": "batch: different record, same format",
+        "obs_a": "ACME Corp, Rs 84,200",
+        "obs_b": "Vertex Ltd, Rs 19,750",
+        "novelty": 0.506277,
+        "primary": true
+      },
+      {
+        "class": "poller",
+        "label": "poller: elapsed only",
+        "obs_a": "Waiting for build, 30s elapsed",
+        "obs_b": "Waiting for build, 45s elapsed",
+        "novelty": 0.231125,
+        "primary": false
+      },
+      {
+        "class": "poller",
+        "label": "poller: pct progress",
+        "obs_a": "Upload 41% complete",
+        "obs_b": "Upload 43% complete",
+        "novelty": 0.030233,
+        "primary": false
+      },
+      {
+        "class": "poller",
+        "label": "poller: queue depth",
+        "obs_a": "Queue depth: 12 jobs pending",
+        "obs_b": "Queue depth: 11 jobs pending",
+        "novelty": 0.057093,
+        "primary": false
+      },
+      {
+        "class": "poller",
+        "label": "poller: unchanged status word",
+        "obs_a": "status=RUNNING retries=0",
+        "obs_b": "status=RUNNING retries=1",
+        "novelty": 0.036123,
+        "primary": false
+      },
+      {
+        "class": "poller",
+        "label": "poller: heartbeat ts",
+        "obs_a": "heartbeat ok at 14:02:11",
+        "obs_b": "heartbeat ok at 14:07:11",
+        "novelty": 0.006702,
+        "primary": false
+      },
+      {
+        "class": "true_loop",
+        "label": "true loop: identical error",
+        "obs_a": "PermissionError: /etc/shadow",
+        "obs_b": "PermissionError: /etc/shadow",
+        "novelty": 0.0,
+        "primary": false
+      },
+      {
+        "class": "true_loop",
+        "label": "true loop: identical empty result",
+        "obs_a": "No results found.",
+        "obs_b": "No results found.",
+        "novelty": 0.0,
+        "primary": false
+      },
+      {
+        "class": "batch",
+        "label": "batch: different invoice rows",
+        "obs_a": "ACME Corp, Rs 84,200, due Aug 12",
+        "obs_b": "Vertex Ltd, Rs 19,750, due Aug 30",
+        "novelty": 0.439155,
+        "primary": false
+      },
+      {
+        "class": "batch",
+        "label": "batch: different file extracted",
+        "obs_a": "invoice_041: total 84200, vendor ACME",
+        "obs_b": "invoice_042: total 19750, vendor Vertex",
+        "novelty": 0.25717,
+        "primary": false
+      },
+      {
+        "class": "batch",
+        "label": "batch: different doc summary",
+        "obs_a": "Contract signed 2024-03-01 by R. Mehta, 24 months",
+        "obs_b": "Contract signed 2025-11-14 by S. Iyer, 6 months",
+        "novelty": 0.285266,
+        "primary": false
+      },
+      {
+        "class": "batch",
+        "label": "batch: different row ids",
+        "obs_a": "row 41: sku=A99 qty=3 status=shipped",
+        "obs_b": "row 42: sku=B12 qty=7 status=pending",
+        "novelty": 0.287041,
+        "primary": false
+      },
+      {
+        "class": "progress",
+        "label": "progress: new subtopic",
+        "obs_a": "Auth tokens expire after 3600s.",
+        "obs_b": "Refresh requires a client secret and rotates the token.",
+        "novelty": 0.610012,
+        "primary": false
+      },
+      {
+        "class": "progress",
+        "label": "progress: unrelated finding",
+        "obs_a": "The config lives in /etc/app.yaml.",
+        "obs_b": "Rate limiting is enforced at the gateway, 100 rps.",
+        "novelty": 0.949579,
+        "primary": false
+      }
+    ],
+    "per_class": {
+      "batch": {
+        "n": 5,
+        "min": 0.25717,
+        "max": 0.506277,
+        "mean": 0.354982
+      },
+      "poller": {
+        "n": 6,
+        "min": 0.006702,
+        "max": 0.231125,
+        "mean": 0.083749
+      },
+      "progress": {
+        "n": 2,
+        "min": 0.610012,
+        "max": 0.949579,
+        "mean": 0.779795
+      },
+      "true_loop": {
+        "n": 3,
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      }
+    },
+    "highest_near_duplicate": 0.231125,
+    "lowest_informative": 0.25717,
+    "usable_window": [
+      0.231125,
+      0.25717
+    ],
+    "usable_window_width": 0.026045,
+    "classes_separated": true,
+    "candidate_floor_survives": false
+  },
+  "calibrator_profile": {
+    "source": "synthetic action-similarity streams; real per-class values pending harness",
+    "novelty_floor_used": 0.15,
+    "novelty_floor_status": "placeholder pending sweep",
+    "hard_clamps": [
+      0.55,
+      0.97
+    ],
+    "profiles": {
+      "batch_tight": {
+        "n_productive": 10,
+        "mu": 0.969096,
+        "sigma": 0.009795,
+        "raw_ceiling": 0.988687,
+        "sim_ceiling": 0.97,
+        "thrash_floor": 0.5,
+        "clamp_engaged": true,
+        "own_max_sim_exceeds_ceiling": true
+      },
+      "batch_invoice_gate1": {
+        "n_productive": 10,
+        "mu": 0.9913,
+        "sigma": 0.0,
+        "raw_ceiling": 0.9913,
+        "sim_ceiling": 0.97,
+        "thrash_floor": 0.5,
+        "clamp_engaged": true,
+        "own_max_sim_exceeds_ceiling": true
+      },
+      "research_open_ended": {
+        "n_productive": 10,
+        "mu": 0.368995,
+        "sigma": 0.087658,
+        "raw_ceiling": 0.544312,
+        "sim_ceiling": 0.55,
+        "thrash_floor": 0.193679,
+        "clamp_engaged": true,
+        "own_max_sim_exceeds_ceiling": false
+      },
+      "mixed": {
+        "n_productive": 10,
+        "mu": 0.639802,
+        "sigma": 0.268792,
+        "raw_ceiling": 1.177387,
+        "sim_ceiling": 0.97,
+        "thrash_floor": 0.102217,
+        "clamp_engaged": true,
+        "own_max_sim_exceeds_ceiling": false
+      }
+    },
+    "c4_adaptation_spread": 0.42,
+    "profiles_pinned_above_ceiling": [
+      "batch_tight",
+      "batch_invoice_gate1"
+    ]
   }
 }

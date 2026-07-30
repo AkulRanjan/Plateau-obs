@@ -50,13 +50,47 @@ Plateau's evaluation compares against shipped detectors rather than strawmen.
 Each is ported with its **published defaults**. None are in the tree yet; each
 entry below is filled in with the cloned commit SHA at port time.
 
-| Baseline | Upstream | Licence | Commit SHA | Status |
+| Baseline | Upstream | Licence | Cloned commit SHA | Status |
 | --- | --- | --- | --- | --- |
-| Exact match | OpenHands `software-agent-sdk`, `openhands-sdk/openhands/sdk/conversation/stuck_detector.py` (`_event_eq`) | MIT | TBD | PLANNED |
-| Exact args / debounce | `aws-samples/sample-why-agents-fail`, Strands `DebounceHook`, keyed on `(tool_name, json.dumps(input))` | TBD | TBD | PLANNED |
-| Step cap | TBD | TBD | TBD | PLANNED |
-| Lexical | `agent-loop-detector` (PyPI) — **source to be read before it is described**; the technical approach calls it lexical and that claim gets verified, not assumed | TBD | TBD | PLANNED |
+| Exact match | `All-Hands-AI/agent-sdk`, `openhands-sdk/openhands/sdk/conversation/stuck_detector.py` (`StuckDetector`, `_event_eq`) | MIT | `4b132eddb6cf414841439a46ce42ed2cd66a628a` | CLONED, not yet ported |
+| Exact args / debounce | `aws-samples/sample-why-agents-fail`, Strands `DebounceHook` | TBD | `08beccadbf753b699465234e52c0a48e087c6606` | CLONED, not yet ported |
+| Step cap | TBD — not yet located in §2.1–2.4 | TBD | TBD | PLANNED |
+| Lexical | `agent-loop-detector` (PyPI) — **source not yet read**; the technical approach calls it lexical and that claim gets verified, not assumed | TBD | TBD | PLANNED |
 | Action-only Plateau | this repo (ablation, not a port) | Apache-2.0 | n/a | PLANNED |
+
+**Repository name correction.** The technical approach and pitch deck cite the
+OpenHands detector as living in `All-Hands-AI/software-agent-sdk`. No repository
+exists at that path. The file is at the cited *path* but inside
+**`All-Hands-AI/agent-sdk`**, which is what was cloned.
+
+**Published defaults**, read from
+`openhands-sdk/openhands/sdk/conversation/types.py` (`StuckDetectionThresholds`)
+at the SHA above. These are the values the baseline gets — no strawmen:
+
+| Parameter | Default |
+| --- | --- |
+| `action_observation` | 4 |
+| `action_error` | 3 |
+| `monologue` | 3 |
+| `alternating_pattern` | 6 |
+| `MAX_EVENTS_TO_SCAN_FOR_STUCK_DETECTION` | 20 |
+
+`StuckDetector` implements five scenarios, not one: repeating
+action-observation, repeating action-error, agent monologue, alternating
+action-observation (an A-B-A-B pattern), and a context-window-error loop.
+Scenario 1 compares **both** the action and the observation via `_event_eq`.
+See the "prior art, as actually read" note in the README — the honest
+description is exact-string vs semantic, not action-only vs both-halves.
+
+### Strands Agents SDK — `CLONED` (adapter reference, no code ported)
+
+- **Source:** `strands-agents/sdk-python`
+- **Cloned commit SHA:** `aae087d6d79d0107cc1f4385a463d188e85bcc50`
+- **Read for:** the real `BeforeToolCallEvent` / `AfterToolCallEvent` signatures
+  in `strands-py/src/strands/hooks/events.py`, and `ToolUse` / `ToolResult` in
+  `strands-py/src/strands/types/tools.py`.
+- **Modifications:** none; nothing ported. Plateau's adapter will target these
+  signatures as read, not as assumed.
 
 ---
 
