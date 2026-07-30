@@ -53,10 +53,15 @@ entry below is filled in with the cloned commit SHA at port time.
 | Baseline | Upstream | Licence | Cloned commit SHA | Status |
 | --- | --- | --- | --- | --- |
 | Exact match | `OpenHands/software-agent-sdk`, `openhands-sdk/openhands/sdk/conversation/stuck_detector.py` (`StuckDetector`, `_event_eq`) | MIT | `4b132eddb6cf414841439a46ce42ed2cd66a628a` | CLONED + READ, not yet ported |
-| Step cap | `aws-samples/sample-why-agents-fail`, `stop-ai-agents-wasting-tokens/03-reasoning-loops-demo/hooks.py` (`LimitToolCounts`) | MIT-0 | `08beccadbf753b699465234e52c0a48e087c6606` | CLONED + READ, not yet ported |
+| Exact args / debounce | published spec at [dev.to/aws](https://dev.to/aws/how-to-prevent-ai-agent-reasoning-loops-from-wasting-tokens-2652); cross-referenced against `aws-samples/sample-why-agents-fail` where the hook is **referenced but not shipped** | MIT-0 (referenced repo) | `08beccadbf753b699465234e52c0a48e087c6606` | **PORTED** → `eval/baselines/exact_args.py` |
+| Step cap | `langchain-ai/langgraph`, `libs/langgraph/langgraph/pregel/_loop.py` + `errors.py` + `_internal/_config.py` (recursion limit) | MIT | `41341457342327166d72fc11952ab28fb61ec0bf` | **PORTED** → `eval/baselines/step_cap.py` |
 | Lexical | `agent-loop-detector` 0.1.0 (PyPI sdist) — **read; the "lexical" description is confirmed** | MIT | sdist 0.1.0 (no public VCS ref found) | DOWNLOADED + READ, not yet ported |
-| Exact args / debounce | **not located.** See "unresolved" below. | — | — | BLOCKED |
 | Action-only Plateau | this repo (ablation, not a port) | Apache-2.0 | n/a | PLANNED |
+
+Five baselines, not six. The LangGraph recursion limit **is** the step-cap
+baseline; there is no separate generic step-cap entry. `LimitToolCounts` from
+`sample-why-agents-fail` is a per-tool call-count cap that was read during this
+work and is credited below as a **reference, not a baseline**.
 
 Each entry below records what the source actually does, read at the SHA given.
 Where that differs from the technical approach, the difference is stated here
@@ -89,22 +94,94 @@ A-B-A-B pattern), and a context-window-error loop. Scenario 1 requires
 **both halves** of a turn, using exact equality. The honest contrast with Plateau
 is exact-string vs semantic, not action-only vs both-halves.
 
-#### Strands `LimitToolCounts` — step-cap baseline
+#### Exact-args debounce — implemented from a published specification
 
-The repository contains **no `DebounceHook`** and is not keyed on
-`(tool_name, json.dumps(input))`. It contains `LimitToolCounts`, described in
-its own docstring as "the official recipe from the Strands Hooks Cookbook —
-copied here verbatim". A source comment in the same repo states explicitly:
-"No DebounceHook."
+Ported to `eval/baselines/exact_args.py`. **No code was copied, because there is
+no upstream source to copy.** It is an independent implementation of the
+specification published at
+<https://dev.to/aws/how-to-prevent-ai-agent-reasoning-loops-from-wasting-tokens-2652>,
+written to the published parameters:
 
-`LimitToolCounts` is a **per-tool call-count cap**: it counts invocations per
-tool name per agent invocation and cancels further calls via
-`event.cancel_tool = "<message>"`. That makes it the **step-cap** baseline, not
-the exact-args baseline.
+| Parameter | Published value |
+| --- | --- |
+| key | `(tool_use["name"], json.dumps(tool_use["input"]))` |
+| `window_size` | 3 |
+| block threshold | key appears ≥ 2 times in the window |
 
-`max_tool_counts` is a required constructor argument with **no default**. The
-repository's own demos use `3` per tool (`chat_guarded.py`) and `2` per tool
-(`test_reasoning_loops.py`); the port will use 3 and say so.
+`json.dumps` is called **without** `sort_keys`, matching the published spec
+verbatim. The key is therefore sensitive to dict insertion order. That is a real
+property of the published design and is left intact; correcting it would make
+this a different detector than the one being compared against.
+
+**Discrepancy.** The technical approach cites this as a `DebounceHook` in
+`aws-samples/sample-why-agents-fail`. That repository contains no such class and
+states its absence outright. Verified by grep at
+`08beccadbf753b699465234e52c0a48e087c6606` — one hit in the entire tree, and it
+is a denial:
+
+```
+stop-ai-agents-wasting-tokens/03-reasoning-loops-demo/images/generate_ambiguous_feedback.py:5:
+    SUCCESS/FAILED states + LimitToolCounts hard ceiling). No DebounceHook.
+```
+
+The spec for this baseline was written from the blog post, not from that
+repository. Recorded here so the blog post is credited as the actual source.
+
+#### LangGraph recursion limit — step-cap baseline
+
+Ported to `eval/baselines/step_cap.py`. Verified by reading the source at
+`41341457342327166d72fc11952ab28fb61ec0bf`:
+
+| Fact | Source location | Value |
+| --- | --- | --- |
+| trip condition | `pregel/_loop.py:607` | `if self.step > self.stop:` → `status = "out_of_steps"` |
+| bound | `pregel/_loop.py:1701`, `:1961` | `self.stop = self.step + self.config["recursion_limit"] + 1` |
+| initial counters | `pregel/_loop.py:301-302` | `self.step = 0`, `self.stop = 0` |
+| exception | `errors.py:67` | `class GraphRecursionError(RecursionError)` |
+| default limit | `_internal/_config.py:32` | **10007**, env-overridable |
+
+The `step > stop` check and the `step + recursion_limit + 1` bound are confirmed
+exactly as specified. Note the consequence: steps `0` through `limit + 1` all
+pass, so the trip lands on step `limit + 2` — an off-by-two against a naive
+"stops after N steps" reading, reproduced faithfully in the port.
+
+**CONFIRMED: it performs no comparison of action or observation content.**
+`step` and `stop` are plain integers threaded through `prepare_next_tasks`. A
+grep across `_loop.py` and `_algo.py` for similarity / jaccard / levenshtein /
+embed / cosine / content comparison returns nothing. The single `deduplicate`
+hit (`_loop.py:419`) is last-write-wins merging of channel writes — state
+reconciliation, not turn comparison. LangGraph counts supersteps and stops.
+
+**Discrepancy on the default.** The port instruction specified 25. The source
+ships `DEFAULT_RECURSION_LIMIT = int(getenv("LANGGRAPH_DEFAULT_RECURSION_LIMIT", "10007"))`.
+25 is widely documented for LangGraph and is retained as the harness default, but
+10007 is what the source says at this commit and the port exposes both. A
+`git log -S` over the shallow clone did not reach a revision where the value was
+25, so no claim is made here that upstream changed it — only what the source says
+now. This matters for the results table: at 10007 the detector never fires on any
+trace of realistic length, so its recall is zero by construction; at 25 it fires
+at a fixed offset regardless of agent behaviour.
+
+Caveat carried into the port: `recursion_limit` counts **supersteps**, not tool
+calls, and a superstep may run several nodes in parallel. The port maps one trace
+turn to one superstep, which is the most favourable reading for the baseline —
+any other mapping makes it fire later, not earlier.
+
+#### Strands `LimitToolCounts` — reference, not a baseline
+
+Read at `08beccadbf753b699465234e52c0a48e087c6606`, credited but **not** used as
+a baseline. Its own docstring calls it "the official recipe from the Strands
+Hooks Cookbook — copied here verbatim"; Strands does not ship it as an
+importable symbol. It is a **per-tool call-count cap** — it counts invocations
+per tool name per agent invocation and cancels further calls via
+`event.cancel_tool = "<message>"`. `max_tool_counts` has no default; the
+repository's own demos use 3 (`chat_guarded.py`) and 2
+(`test_reasoning_loops.py`).
+
+It is credited because it is where Plateau's escape-vector delivery mechanism
+was confirmed in real shipped code rather than inferred from a dataclass: a
+string assigned to `cancel_tool` becomes a tool result with error status and
+returns to the agent.
 
 #### `agent-loop-detector` — lexical baseline
 
@@ -132,14 +209,46 @@ action-only detector.
 | `max_consecutive` | 3 |
 | `algorithm` | `'jaccard'` |
 
-#### Unresolved
+---
 
-- **Exact-args / debounce baseline.** The cited source does not contain it.
-  Either another upstream ships it or the technical approach conflated it with
-  `LimitToolCounts`. Not ported until sourced; will not be hand-written and
-  presented as someone else's shipped detector.
-- **LangGraph.** Named as a fourth incumbent in the pitch but not yet cloned or
-  read. Its mechanism is unverified and is described nowhere in this repo.
+## Corrections to our own pitch materials
+
+Kept in this file, next to the attribution it corrects, so it cannot be lost
+between the deck and the README. Every line below was verified by reading source
+at the SHAs recorded above.
+
+**1. "All four incumbents compare exact strings" — wrong.** Slides 02 and 06 of
+`Plateau_FRONTIER_2026` claim all four shipped systems match exact strings.
+LangGraph compares **nothing at all**. Its recursion limit is a pure superstep
+counter with no inspection of action or observation content (confirmed above).
+Two of the four do not compare strings in the claimed way either: LangGraph
+compares nothing, and `agent-loop-detector` compares *lexical token overlap*
+(Jaccard / TF-cosine / Levenshtein), which is not exact-string matching.
+
+**2. "They all read only the action" — wrong, in two directions.** OpenHands
+`StuckDetector` scenario 1 requires `actions_equal` **and** `observations_equal`,
+so it reads both halves. `agent-loop-detector`'s entry point is `check(output)` —
+a single argument — so it reads only the *observation* and never sees the action.
+
+**The accurate claim, which is narrower and survives a judge opening the
+source:** of the four shipped systems, one reads both halves but only by exact
+equality, one reads only the observation and only lexically, one counts actions
+per tool, and one counts supersteps and reads neither half. **None compares both
+halves semantically.** That is the gap.
+
+**3. Organisation-name retraction.** An earlier revision of *this file* claimed
+no repository existed at `software-agent-sdk`. That was this file's error, not
+the technical approach's: the repository is `OpenHands/software-agent-sdk` and
+the cited name was correct. See the exact-match section above.
+
+---
+
+## Unresolved
+
+- **`agent-loop-detector` upstream VCS.** Read from the PyPI sdist (0.1.0, MIT).
+  No public source repository was located, so the sdist is the provenance anchor.
+- **`DEFAULT_RECURSION_LIMIT` history.** The shallow clone could not establish
+  whether LangGraph's default was ever 25. Stated as "10007 at this commit" only.
 
 ### Strands Agents SDK — `CLONED` (adapter reference, no code ported)
 
