@@ -27,6 +27,110 @@ from plateau.encoder import MiniLMEncoder  # noqa: E402
 from scripts.detector_fixtures import FIXTURES, PREAMBLE  # noqa: E402
 
 
+# Ground truth per fixture: should the detector trip on it or not?
+# 1 and 3a are genuine stalls. 2 is a healthy batch job. 3b is a stall the
+# design is documented as missing, so it is scored separately and excluded from
+# both recall and the false-trip rate.
+SHOULD_TRIP = {
+    "1_paraphrase_loop": True,
+    "2_invoice_batch_grind": False,
+    "3a_thrash_identical_errors": True,
+    "3b_thrash_varied_errors": None,   # documented known miss
+}
+
+
+def summarise(results: dict, fixture_names) -> dict:
+    """Reduce the grid to recall, false-trip rate, and the usable window.
+
+    The usable window is the set of parameter combinations that catch every
+    stall and false-trip on nothing. Its *width* is a first-class result: a
+    design that only works at one knife-edge setting is not a design, it is a
+    coincidence.
+    """
+    positives = [n for n in fixture_names if SHOULD_TRIP.get(n) is True]
+    negatives = [n for n in fixture_names if SHOULD_TRIP.get(n) is False]
+
+    per_config = {}
+    for key, row in results.items():
+        detected = [n for n in positives if row[n]["trip_turn"] is not None]
+        false_trips = [n for n in negatives if row[n]["trip_turn"] is not None]
+        per_config[key] = {
+            "novelty_floor": row["novelty_floor"],
+            "k_sigma": row["k_sigma"],
+            "trip_after_loop": row["trip_after_loop"],
+            "trip_after_stall": row["trip_after_stall"],
+            "recall": len(detected) / len(positives) if positives else None,
+            "detected": detected,
+            "missed": [n for n in positives if n not in detected],
+            "false_trips": len(false_trips),
+            "false_trip_rate": len(false_trips) / len(negatives) if negatives else None,
+            "usable": len(detected) == len(positives) and not false_trips,
+        }
+
+    usable = [k for k, v in per_config.items() if v["usable"]]
+    recalls = sorted({v["recall"] for v in per_config.values() if v["recall"] is not None})
+
+    # Per-parameter usable range, so the window has a width per axis rather than
+    # a single opaque count.
+    axes = ("novelty_floor", "k_sigma", "trip_after_loop", "trip_after_stall")
+    window = {}
+    for axis in axes:
+        values = sorted({per_config[k][axis] for k in usable})
+        window[axis] = {
+            "usable_values": values,
+            "width": (max(values) - min(values)) if values else 0,
+            "n_usable_values": len(values),
+        }
+
+    return {
+        "ground_truth": SHOULD_TRIP,
+        "n_configs": len(per_config),
+        "n_usable_configs": len(usable),
+        "usable_fraction": len(usable) / len(per_config) if per_config else 0.0,
+        "distinct_recall_values": recalls,
+        "max_recall_observed": max(recalls) if recalls else None,
+        "usable_window": window,
+        "usable_config_keys": usable,
+        "per_config": per_config,
+    }
+
+
+def report_summary(summary: dict) -> None:
+    print("\n" + "=" * 78)
+    print("SWEEP SUMMARY")
+    print("=" * 78)
+    print(f"configs evaluated        : {summary['n_configs']}")
+    print(f"usable configs           : {summary['n_usable_configs']} "
+          f"({summary['usable_fraction'] * 100:.1f}%)")
+    print(f"distinct recall values   : {summary['distinct_recall_values']}")
+    print(f"max recall observed      : {summary['max_recall_observed']}")
+
+    if summary["n_usable_configs"] == 0:
+        print("\nNO USABLE CONFIGURATION EXISTS in this grid.")
+        print("A config is usable only if it catches every stall AND false-trips")
+        print("on nothing. Since no config reaches recall 1.0, the usable")
+        print("threshold window is EMPTY and its width is undefined.")
+    else:
+        print("\nusable threshold window, per axis:")
+        for axis, info in summary["usable_window"].items():
+            print(
+                f"    {axis:<18} values={info['usable_values']} "
+                f"width={info['width']}"
+            )
+
+    # Which positives are never caught, in any configuration?
+    never = {}
+    for key, config in summary["per_config"].items():
+        for name in config["missed"]:
+            never[name] = never.get(name, 0) + 1
+    total = summary["n_configs"]
+    if never:
+        print("\npositives missed, by configuration count:")
+        for name, count in sorted(never.items()):
+            flag = "  <-- MISSED IN EVERY CONFIG" if count == total else ""
+            print(f"    {name:<32} {count}/{total}{flag}")
+
+
 def run_one(
     encoder: MiniLMEncoder,
     turns,
@@ -120,6 +224,9 @@ def main() -> int:
             f"{tl_v:>3} {ts_v:>3}{cells}"
         )
 
+    summary = summarise(results, fixture_names)
+    report_summary(summary)
+
     # Write to metrics.json
     path = ROOT / "metrics.json"
     doc = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
@@ -131,6 +238,7 @@ def main() -> int:
             "trip_after_loop": trip_after_loops,
             "trip_after_stall": trip_after_stalls,
         },
+        "summary": summary,
         "results": results,
     }
     path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")

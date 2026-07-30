@@ -33,11 +33,24 @@ Fixture 2 is the counter-demo: action_sim 0.9913 clears the ceiling, so
 similarity alone condemns it. It survives because novelty 0.4392 is above the
 floor. That is the joint design earning its place.
 
+## Read this before the results table
+
+**The fixtures below validate _classification_, not _detection_, and the
+detection comparison that follows is not yet a valid benchmark.** Fixtures 1 and
+2 are **two turns** long. Every trip threshold in the design is 3 or higher, so
+neither fixture can physically trip regardless of parameters. Any row showing
+`---` for them is measuring trace length, not detector behaviour.
+
+This is stated up front because the sweep below reports **0 usable
+configurations out of 144** and that number is an artifact of the above, not a
+verdict on the design. Real per-class traces (§9) are required before any
+detection claim here means anything.
+
 ## Six-baseline comparison
 
 Trip turn by variant and fixture (preamble + fixture turns; `---` = no trip):
 
-| Variant | 1 — paraphrase (2t) | 2 — batch (2t) | 3a — identical (8t) | 3b — varied (3t) |
+| Variant | 1 — paraphrase (2t) | 2 — batch (2t) | 3a — identical (7t) | 3b — varied (3t) |
 |---|---|---|---|---|
 | **Plateau (full)** | --- | --- | 6 | --- |
 | **action_only** | --- | --- | 5 | --- |
@@ -60,6 +73,35 @@ Note: **step_cap (LangGraph 25)** requires 27 turns to fire, longer than
 any fixture. At the source default of **10007** it never fires on any trace
 up to 200 turns — recall is zero by construction.
 
+### Our worst numbers, stated plainly
+
+**On the only fixture where anything detects a stall, a 2019-era lexical
+baseline beats us: `agent-loop-detector` fires at turn 2, Plateau at turn 6.**
+That is the honest result on 3a, whose observations are byte-identical — exactly
+the case exact and lexical matching are built for. Plateau's claimed advantage is
+on *paraphrased* stagnation, and the fixture that would show it (fixture 1) is
+too short to trip at all. So the advantage is currently **unmeasured**, not
+demonstrated.
+
+**Sweep: 0 of 144 configurations are usable.** A configuration is usable only if
+it catches every stall and false-trips on nothing.
+
+| Sweep result | Value |
+|---|---|
+| Configurations evaluated | 144 |
+| Usable configurations | **0 (0.0%)** |
+| Max recall observed | **0.5** |
+| Usable threshold window width | **empty — undefined** |
+| False-trip rate (fixture 2, all configs) | **0.0** |
+| `1_paraphrase_loop` missed in | **144/144 configs** |
+| `3a_thrash_identical_errors` missed in | 28/144 configs |
+
+The one genuinely good number there is the false-trip rate: **0.0 across all 144
+configurations** — the healthy batch job was never tripped on, at any parameter
+setting. The counter-demo is the most robust result in the project.
+
+Everything else is pending real traces. `metrics.json` → `sweep.summary`.
+
 ## Documented limitations
 
 1. **Fixture 3b (varied error strings) is a known miss.** Lexically varied
@@ -77,6 +119,39 @@ up to 200 turns — recall is zero by construction.
 3. **No thrash floor.** Three different tools score 0.7397, so
    `mu − k·σ` cannot find a low-similarity region that does not exist. Not
    patched with a constant.
+
+4. **Fixtures 1 and 2 are two turns long and cannot trip.** Every threshold is
+   ≥3. They test quadrant classification, which they pass, and nothing else. The
+   detection comparison and the sweep are therefore not yet valid benchmarks.
+
+5. **No non-synthetic evaluation yet.** Every trace above is hand-written. The
+   TRAIL dataset (gated, `PatronusAI/TRAIL`) is downloaded separately by a human
+   and is never committed; `data/trail/` is gitignored. Until those traces are
+   loaded, no number here is evidence about real agent behaviour.
+
+## Prior art, as actually read
+
+Four shipped systems guard against agent loops. We read each one's source rather
+than its README, and two claims in our own pitch deck turned out to be wrong —
+the corrections are recorded in `THIRD_PARTY_NOTICES.md`.
+
+| System | Reads | Mechanism |
+|---|---|---|
+| OpenHands `StuckDetector` | **both halves** | exact equality (`_event_eq`), 5 scenarios |
+| `agent-loop-detector` | **observation only** (`check(output)`) | Jaccard / TF-cosine / Levenshtein |
+| Strands `LimitToolCounts` | action count per tool | per-tool call cap |
+| LangGraph `recursion_limit` | **neither half** | superstep counter, no content comparison |
+
+**None compares both halves semantically.** That is the gap Plateau targets — a
+narrower claim than "they all compare exact strings," which is false: LangGraph
+compares nothing at all, and `agent-loop-detector` compares lexical overlap.
+
+Both open OpenHands issues we cite as motivation are real and unresolved:
+[#5355](https://github.com/All-Hands-AI/OpenHands/issues/5355) (loop detection
+kills agents waiting on long-running processes) and
+[#5480](https://github.com/All-Hands-AI/OpenHands/issues/5480) (cannot recover
+from a stuck loop). The second is why recovery here is an evaluated probe rather
+than a hard stop.
 
 ## Provisional parameters (pending sweep)
 

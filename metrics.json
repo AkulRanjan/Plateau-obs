@@ -1087,6 +1087,2323 @@
         8
       ]
     },
+    "summary": {
+      "ground_truth": {
+        "1_paraphrase_loop": true,
+        "2_invoice_batch_grind": false,
+        "3a_thrash_identical_errors": true,
+        "3b_thrash_varied_errors": null
+      },
+      "n_configs": 144,
+      "n_usable_configs": 0,
+      "usable_fraction": 0.0,
+      "distinct_recall_values": [
+        0.0,
+        0.5
+      ],
+      "max_recall_observed": 0.5,
+      "usable_window": {
+        "novelty_floor": {
+          "usable_values": [],
+          "width": 0,
+          "n_usable_values": 0
+        },
+        "k_sigma": {
+          "usable_values": [],
+          "width": 0,
+          "n_usable_values": 0
+        },
+        "trip_after_loop": {
+          "usable_values": [],
+          "width": 0,
+          "n_usable_values": 0
+        },
+        "trip_after_stall": {
+          "usable_values": [],
+          "width": 0,
+          "n_usable_values": 0
+        }
+      },
+      "usable_config_keys": [],
+      "per_config": {
+        "f0.25_k0.5_tl2_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k0.5_tl2_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k0.5_tl2_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k0.5_tl3_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k0.5_tl3_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k0.5_tl3_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k0.5_tl4_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k0.5_tl4_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k0.5_tl4_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.0_tl2_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.0_tl2_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.0_tl2_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.0_tl3_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.0_tl3_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.0_tl3_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.0_tl4_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.0_tl4_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.0_tl4_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.5_tl2_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.5_tl2_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.5_tl2_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.5_tl3_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.5_tl3_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.5_tl3_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.5_tl4_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.5_tl4_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k1.5_tl4_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k2.0_tl2_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k2.0_tl2_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k2.0_tl2_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k2.0_tl3_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k2.0_tl3_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k2.0_tl3_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k2.0_tl4_ts4": {
+          "novelty_floor": 0.25,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k2.0_tl4_ts6": {
+          "novelty_floor": 0.25,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.25_k2.0_tl4_ts8": {
+          "novelty_floor": 0.25,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k0.5_tl2_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k0.5_tl2_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k0.5_tl2_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k0.5_tl3_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k0.5_tl3_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k0.5_tl3_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k0.5_tl4_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k0.5_tl4_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k0.5_tl4_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.0_tl2_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.0_tl2_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.0_tl2_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.0_tl3_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.0_tl3_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.0_tl3_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.0_tl4_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.0_tl4_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.0_tl4_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.5_tl2_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.5_tl2_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.5_tl2_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.5_tl3_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.5_tl3_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.5_tl3_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.5_tl4_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.5_tl4_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k1.5_tl4_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k2.0_tl2_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k2.0_tl2_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k2.0_tl2_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k2.0_tl3_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k2.0_tl3_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k2.0_tl3_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k2.0_tl4_ts4": {
+          "novelty_floor": 0.3,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k2.0_tl4_ts6": {
+          "novelty_floor": 0.3,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.3_k2.0_tl4_ts8": {
+          "novelty_floor": 0.3,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k0.5_tl2_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k0.5_tl2_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k0.5_tl2_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k0.5_tl3_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k0.5_tl3_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k0.5_tl3_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k0.5_tl4_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k0.5_tl4_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k0.5_tl4_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.0_tl2_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.0_tl2_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.0_tl2_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.0_tl3_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.0_tl3_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.0_tl3_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.0_tl4_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.0_tl4_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.0_tl4_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.5_tl2_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.5_tl2_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.5_tl2_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.5_tl3_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.5_tl3_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.5_tl3_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.5_tl4_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.5_tl4_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k1.5_tl4_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k2.0_tl2_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k2.0_tl2_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k2.0_tl2_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k2.0_tl3_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k2.0_tl3_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k2.0_tl3_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k2.0_tl4_ts4": {
+          "novelty_floor": 0.35,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k2.0_tl4_ts6": {
+          "novelty_floor": 0.35,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.35_k2.0_tl4_ts8": {
+          "novelty_floor": 0.35,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k0.5_tl2_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k0.5_tl2_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k0.5_tl2_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 0.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k0.5_tl3_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k0.5_tl3_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k0.5_tl3_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 0.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k0.5_tl4_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k0.5_tl4_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k0.5_tl4_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 0.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.0_tl2_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.0_tl2_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.0_tl2_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.0_tl3_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.0_tl3_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.0_tl3_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.0_tl4_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.0_tl4_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.0_tl4_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.5_tl2_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.5_tl2_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.5_tl2_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.5,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.5_tl3_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.5_tl3_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.5_tl3_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.5,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.5_tl4_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.5_tl4_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k1.5_tl4_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 1.5,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k2.0_tl2_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k2.0_tl2_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k2.0_tl2_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 2.0,
+          "trip_after_loop": 2,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k2.0_tl3_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k2.0_tl3_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k2.0_tl3_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 2.0,
+          "trip_after_loop": 3,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k2.0_tl4_ts4": {
+          "novelty_floor": 0.4,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 4,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k2.0_tl4_ts6": {
+          "novelty_floor": 0.4,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 6,
+          "recall": 0.5,
+          "detected": [
+            "3a_thrash_identical_errors"
+          ],
+          "missed": [
+            "1_paraphrase_loop"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        },
+        "f0.4_k2.0_tl4_ts8": {
+          "novelty_floor": 0.4,
+          "k_sigma": 2.0,
+          "trip_after_loop": 4,
+          "trip_after_stall": 8,
+          "recall": 0.0,
+          "detected": [],
+          "missed": [
+            "1_paraphrase_loop",
+            "3a_thrash_identical_errors"
+          ],
+          "false_trips": 0,
+          "false_trip_rate": 0.0,
+          "usable": false
+        }
+      }
+    },
     "results": {
       "f0.25_k0.5_tl2_ts4": {
         "novelty_floor": 0.25,
