@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /** Per-turn dwell, in ms. */
 const TICK_NORMAL = 820;
@@ -24,9 +24,6 @@ export function usePlayback({ length }) {
   const [step, setStep] = useState(-1);
   const [playing, setPlaying] = useState(false);
   const [fast, setFast] = useState(false);
-
-  // Auto-start must fire once per mount, not once per StrictMode pass.
-  const started = useRef(false);
 
   const atEnd = step >= length - 1;
 
@@ -65,9 +62,18 @@ export function usePlayback({ length }) {
   }, [playing, step, fast, length]);
 
   // --- kick off once on mount so the console animates itself ---
+  //
+  // There is deliberately NO ref guard here. An earlier version had one, and
+  // under StrictMode it stopped the demo starting at all: first mount set the
+  // flag and scheduled the timer, StrictMode's cleanup cleared that timer, and
+  // the second mount saw the flag already set and scheduled nothing. The result
+  // auto-played in a production build and sat on STANDBY in dev — the worst
+  // possible split, because dev is what you'd have open while rehearsing.
+  //
+  // The cleanup is sufficient on its own: the effect runs once per mount, each
+  // cleanup cancels the previous timer, so exactly one survives. setStep(0) and
+  // setPlaying(true) are idempotent, so a double invocation is harmless anyway.
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
     const id = setTimeout(() => {
       setStep(0);
       setPlaying(true);

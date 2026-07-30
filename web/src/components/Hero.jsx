@@ -37,7 +37,10 @@ export default function Hero({ rows, tripTurn, tripped }) {
           breaker trips at the flat — not at the first repeat.
         </p>
 
-        <div className="flex flex-wrap gap-x-6 gap-y-3">
+        {/* items-end so the uppercase labels form one line; baselining the
+            values instead leaves the 34px "tokens saved" label sitting lower
+            than its neighbours. */}
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
           <Stat label="tokens saved" accent big>
             <StatTicker value={tokensSaved} active={tripped} />
           </Stat>

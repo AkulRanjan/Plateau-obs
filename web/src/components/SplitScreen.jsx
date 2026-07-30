@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useSpring } from "framer-motion";
 import { CircleCheck, OctagonX } from "lucide-react";
 import { STEP_CAP, TOKENS_PER_TURN } from "../data/trace.js";
@@ -64,7 +64,9 @@ export default function SplitScreen() {
           title="UNGUARDED"
           tone="var(--color-red)"
           cost={unguardedCost}
-          costLabel="still climbing"
+          costLabel={
+            shown >= UNGUARDED_RUN.length ? "stopped at the cap" : "still climbing"
+          }
           footer={
             shown >= UNGUARDED_RUN.length
               ? `Stopped only because the step-cap (${STEP_CAP}) was reached. Nothing was learned after turn ${TRIP_TURN}.`
@@ -92,6 +94,30 @@ export default function SplitScreen() {
           cost={guardedCost}
           costLabel={tripped ? "frozen" : "climbing"}
           frozen={tripped}
+          banner={
+            tripped ? (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={PANEL_SPRING}
+                className="mt-2 rounded-lg border px-2.5 py-2 font-mono text-[10.5px] leading-relaxed"
+                style={{
+                  borderColor: "var(--color-red)",
+                  color: "var(--color-red)",
+                  background:
+                    "color-mix(in srgb, var(--color-red) 8%, transparent)",
+                }}
+              >
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <OctagonX size={12} aria-hidden="true" /> OPEN · plateau detected
+                </span>
+                <span className="mt-1 block text-muted">
+                  Reason and escape vector returned to the agent. No further turns
+                  execute, and no further embedding is computed.
+                </span>
+              </motion.div>
+            ) : null
+          }
           footer={
             tripped
               ? `Halted at turn ${TRIP_TURN}. ${
@@ -115,27 +141,6 @@ export default function SplitScreen() {
             ))}
           </AnimatePresence>
 
-          {tripped && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={PANEL_SPRING}
-              className="mt-1.5 rounded-lg border px-2.5 py-2 font-mono text-[10.5px] leading-relaxed"
-              style={{
-                borderColor: "var(--color-red)",
-                color: "var(--color-red)",
-                background: "color-mix(in srgb, var(--color-red) 8%, transparent)",
-              }}
-            >
-              <span className="flex items-center gap-1.5 font-semibold">
-                <OctagonX size={12} aria-hidden="true" /> OPEN · plateau detected
-              </span>
-              <span className="mt-1 block text-muted">
-                Reason and escape vector returned to the agent. No further turns
-                execute, and no further embedding is computed.
-              </span>
-            </motion.div>
-          )}
         </Pane>
       </div>
 
@@ -150,7 +155,17 @@ export default function SplitScreen() {
   );
 }
 
-function Pane({ title, tone, cost, costLabel, frozen, footer, children }) {
+function Pane({ title, tone, cost, costLabel, frozen, footer, banner, children }) {
+  const scroller = useRef(null);
+
+  // Follow the newest line, like the telemetry feed. Without this the pane sits
+  // at turn 1 while the interesting part — the dimmed projection past the trip —
+  // scrolls out of sight below.
+  useEffect(() => {
+    const el = scroller.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  });
+
   return (
     <div
       className="flex flex-col rounded-xl border bg-surface p-3"
@@ -173,9 +188,16 @@ function Pane({ title, tone, cost, costLabel, frozen, footer, children }) {
         <CostCounter value={cost} /> <span className="text-[11px] text-faint">tok</span>
       </div>
 
-      <div className="flex max-h-[280px] flex-col gap-1 overflow-y-auto pr-1 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]">
+      <div
+        ref={scroller}
+        className="flex max-h-[280px] flex-col gap-1 overflow-y-auto pr-1 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]"
+      >
         {children}
       </div>
+
+      {/* Outside the scroller on purpose: this is the most important thing in
+          the pane, and inside it the banner scrolled out of view / clipped. */}
+      {banner}
 
       <p className="mt-2 border-t border-line-soft pt-2 text-[11px] leading-relaxed text-muted">
         {footer}
