@@ -189,6 +189,27 @@ DASHBOARD = """<!doctype html>
   .status{font:10px/1 var(--display);letter-spacing:.13em;text-transform:uppercase;
           padding:4px 8px;border:.5px solid var(--ink-soft);color:var(--ink-soft);
           white-space:nowrap}
+  /* The two outcomes carry the argument, so they are the only chips that fill.
+     Red for an agent that ran until we stopped it; ink for the one that was
+     stopped on purpose. Red on both would read as two failures. */
+  .status.capped{background:var(--signal);border-color:var(--signal);color:#fff}
+  .status.opened{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+
+  /* ledger — the reckoning between the two channels ---------------------- */
+  .ledger{border:1px solid var(--ink);background:var(--paper-2);margin-bottom:16px}
+  .ledger-head{padding:7px 12px;border-bottom:.5px solid var(--rule);
+               display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .ledger-body{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule)}
+  .lc{background:var(--paper);padding:9px 12px 10px}
+  .lc u{display:block;text-decoration:none;font:600 8.5px/1.3 var(--display);
+        letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  .lc .pair{display:flex;align-items:baseline;gap:8px;margin-top:3px;
+            font:400 20px/1.2 var(--data);font-variant-numeric:tabular-nums}
+  .lc .pair s{text-decoration:none;color:var(--ink-faint)}
+  .lc .pair em{font-style:normal;color:var(--ink-faint);font-size:13px}
+  .lc .pair b{font-weight:400}
+  .lc small{display:block;font:10px/1.4 var(--data);color:var(--ink-faint);margin-top:2px}
+  .lc small.win{color:var(--pen-b)}
 
   /* annunciator lamps --------------------------------------------------- */
   .lamps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
@@ -283,6 +304,14 @@ DASHBOARD = """<!doctype html>
   </div>
 </div>
 
+<div class="ledger" id="ledger" hidden>
+  <div class="ledger-head">
+    <span class="plate">Ledger — unguarded against plateau</span>
+    <span class="plate" id="ledger-note">awaiting both agents</span>
+  </div>
+  <div class="ledger-body" id="ledger-body"></div>
+</div>
+
 <div class="channels" id="channels">
   <section class="ch idle" id="ch-unguarded">
     <div class="ch-head">
@@ -338,6 +367,45 @@ function stallSpan(turns){
     }
   }
   return {from:null, spent:0};
+}
+
+/* The reckoning. Only drawn once both agents have reported, because half a
+   comparison is worse than none. */
+function ledgerCell(label, a, b, note, win){
+  return `<div class="lc"><u>${label}</u>
+    <div class="pair"><s>${a}</s><em>&rarr;</em><b>${b}</b></div>
+    <small class="${win?'win':''}">${note}</small></div>`;
+}
+
+function renderLedger(s){
+  const U=s.unguarded, P=s.plateau;
+  const el=document.getElementById('ledger');
+  if(!(U.turns||[]).length || !(P.turns||[]).length){ el.hidden=true; return; }
+  el.hidden=false;
+
+  const uRan=U.turns.filter(t=>t.executed!==false).length;
+  const pRan=P.turns.filter(t=>t.executed!==false).length;
+  const uStall=stallSpan(U.turns).spent, pStall=stallSpan(P.turns).spent;
+  const pRef=P.turns.filter(t=>t.executed===false).length;
+  const uTok=uRan*1850, pTok=pRan*1850;
+  const cut=uTok-pTok, pct = uTok ? Math.round(100*cut/uTok) : 0;
+  const stallCut = uStall ? Math.round(100*(uStall-pStall)/uStall) : 0;
+  const uSec=U.summary['wall clock (s)'], pSec=P.summary['wall clock (s)'];
+
+  document.getElementById('ledger-note').textContent =
+    (U.done && P.done) ? 'both runs complete' : 'live — figures move until both runs end';
+
+  document.getElementById('ledger-body').innerHTML =
+    ledgerCell('Turns spent stalled', uStall, pStall,
+               uStall>pStall ? `${uStall-pStall} fewer turns re-asking a dead question · ${stallCut}%`
+                             : 'no difference yet', uStall>pStall) +
+    ledgerCell('Turns run', uRan, pRan,
+               `${pRef} refused before reaching a tool`) +
+    ledgerCell('Tokens (est)', num(uTok), num(pTok),
+               cut>0 ? `${num(cut)} fewer · ${pct}% · illustrative`
+                     : 'illustrative, not measured', cut>0) +
+    ledgerCell('Wall clock', uSec!=null?uSec+'s':'—', pSec!=null?pSec+'s':'—',
+               'separate machines — not a like-for-like speed comparison');
 }
 
 function counter(label, value, sub, flag){
@@ -429,8 +497,9 @@ function renderUnguarded(d){
 
   document.getElementById('u-sub').textContent =
     `${last.model||'model unknown'}${last.digest?' · digest '+last.digest:''}`;
-  document.getElementById('u-status').textContent =
-    d.done ? (d.summary['ended because']||'finished') : 'running';
+  const uStatus=document.getElementById('u-status');
+  uStatus.textContent = d.done ? (d.summary['ended because']||'finished') : 'running';
+  uStatus.className = 'status' + (d.done && d.summary['tripped at turn']==='never' ? ' capped' : '');
   document.getElementById('u-counts').innerHTML =
     counter('Turns run', ran, 'nothing stopped it') +
     counter('Spent stalled', stall.spent,
@@ -459,8 +528,9 @@ function renderPlateau(d){
     `${last.model||''}${last.digest?' · digest '+last.digest:''}`;
   document.getElementById('p-sub').textContent=
     `${last.model||'model unknown'}${last.digest?' · digest '+last.digest:''}`;
-  document.getElementById('p-status').textContent =
-    d.done ? (d.summary['ended because']||'finished') : last.state.toLowerCase();
+  const pStatus=document.getElementById('p-status');
+  pStatus.textContent = d.done ? (d.summary['ended because']||'finished') : last.state.toLowerCase();
+  pStatus.className = 'status' + (d.done && d.summary['tripped at turn']!=='never' ? ' opened' : '');
 
   for(const lamp of document.querySelectorAll('#lamps div')){
     lamp.className = lamp.dataset.s===last.state
@@ -524,7 +594,7 @@ async function tick(){
   try{
     const r=await fetch('/state',{cache:'no-store'});
     const s=await r.json();
-    renderUnguarded(s.unguarded); renderPlateau(s.plateau);
+    renderUnguarded(s.unguarded); renderPlateau(s.plateau); renderLedger(s);
     const live=['unguarded','plateau'].filter(m=>(s[m].turns||[]).length).length;
     document.getElementById('channels').classList.toggle('solo',live===1);
   }catch(e){}
