@@ -32,6 +32,7 @@ test rather than a friendly one.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
@@ -78,28 +79,72 @@ SPAN_MODES: dict[str, tuple[str, ...]] = {
     "tool+llm": ("TOOL", "LLM"),
 }
 
-# --- Judgement call 2: which categories mean "should have tripped" ------------
+# --- Category names as they really appear -------------------------------------
 #
-# Leaf categories, verbatim from the taxonomy in
-# patronus-ai/trail-benchmark/benchmarking/run_eval.py.
+# The annotations are hand-written, and the strings do NOT match the published
+# taxonomy exactly: the pinned revision contains **31 distinct category strings**
+# for roughly 17 taxonomy leaves. Variants include casing ("Goal deviation"),
+# pluralisation ("Task Orchestration" / "Task Orchestration Errors"), singular
+# forms ("Context Handling Failure"), a leading space, and one outright typo
+# ("Instruction non complience").
+#
+# Exact-string matching against the published taxonomy therefore silently drops
+# labelled traces -- 8 of them here -- which would show up as a slightly better
+# false-trip rate and nothing else. Everything is canonicalised through
+# `canonical_category` before any mapping is applied, and the full raw->canonical
+# table is written into metrics.json so the normalisation can be audited rather
+# than trusted.
 
-#: "Called the tool excessively" -- the canonical runaway loop, and the only
-#: category that unambiguously describes what Plateau exists to catch.
-STRICT = frozenset({"Resource Abuse"})
+#: Typos that no rule can repair. Keyed by the normalised form.
+_ALIASES = {
+    "instruction non complience": "instruction non compliance",
+    "incorrect memory usage": "context handling failure",
+}
 
-#: Adds the two other "the agent is no longer making progress" categories:
-#: progress-monitoring failures, and losing track of state.
-PRIMARY = STRICT | frozenset({"Task Orchestration", "Context Handling Failures"})
 
-#: Adds categories where the agent is doing *something*, just not something
-#: useful. Deliberately generous -- this is the mapping most favourable to a
-#: stagnation detector, and is reported so that favourability is visible.
-BROAD = PRIMARY | frozenset({"Goal Deviation", "Poor Information Retrieval"})
+def canonical_category(raw: str) -> str:
+    """Normalise one annotated category string to a canonical leaf name.
+
+    Lowercases, collapses punctuation and whitespace, drops a trailing
+    "error"/"errors", then depluralises the final word. Applied to both the
+    data and the mappings below, so the two can never disagree about spelling.
+    """
+    key = re.sub(r"[^a-z]+", " ", str(raw).lower()).strip()
+    key = re.sub(r"\s*errors?$", "", key).strip()
+    if key.endswith("s") and not key.endswith("ss"):
+        key = key[:-1]
+    return _ALIASES.get(key, key)
+
+
+# --- Judgement call 2: which categories mean "should have tripped" ------------
+
+#: "Called the tool excessively due to memory issues" -- the canonical runaway
+#: loop, and the only leaf that unambiguously describes what Plateau exists to
+#: catch.
+STRICT = frozenset({canonical_category("Resource Abuse")})
+
+#: Adds the two other "no longer making progress" leaves: progress-monitoring
+#: failures, and losing track of state. `Incorrect Memory Usage` is aliased into
+#: Context Handling Failure -- it is not in the published taxonomy, and the
+#: taxonomy defines context handling as including "state tracking or forgetting
+#: important context".
+PRIMARY = STRICT | {
+    canonical_category("Task Orchestration"),
+    canonical_category("Context Handling Failures"),
+}
+
+#: Adds leaves where the agent is doing *something*, just not something useful.
+#: Deliberately generous: this is the mapping most favourable to a stagnation
+#: detector, and it is reported so that favourability is visible.
+BROAD = PRIMARY | {
+    canonical_category("Goal Deviation"),
+    canonical_category("Poor Information Retrieval"),
+}
 
 MAPPINGS: dict[str, frozenset[str]] = {
-    "strict": STRICT,
-    "primary": PRIMARY,
-    "broad": BROAD,
+    "strict": frozenset(STRICT),
+    "primary": frozenset(PRIMARY),
+    "broad": frozenset(BROAD),
 }
 
 #: The mapping headline numbers are quoted under. Every mapping is measured and
@@ -133,6 +178,45 @@ def _walk(span: dict) -> Iterator[dict]:
 def _clip(text: str) -> str:
     text = " ".join(str(text).split())
     return text[:MAX_TEXT_CHARS]
+
+
+#: raw annotated string -> canonical leaf, accumulated across every load.
+#: Written into metrics.json so the normalisation is auditable.
+RAW_TO_CANONICAL: dict[str, str] = {}
+
+#: Annotation files repaired on load, by reason. Populated by _load_json and
+#: serialised into metrics.json, because a silent repair of someone else's data
+#: is indistinguishable from a bug in ours.
+REPAIRED: dict[str, str] = {}
+
+#: A trailing comma before a closing bracket. Legal in JSON5 and in Python,
+#: rejected by json.loads.
+_TRAILING_COMMA = re.compile(r",(\s*[\]}])")
+
+
+def _load_json(path: Path) -> dict:
+    """Parse an annotation file, tolerating one specific real defect.
+
+    `processed_annotations_gaia/a96c6811716c0473b86a23321db79c34.json` in the
+    pinned TRAIL revision has a trailing comma before the end of its `errors`
+    array. The file is otherwise complete and its content is unambiguous.
+
+    The repair is deliberately the narrowest one that works, and it is recorded
+    rather than applied quietly: dropping the trace would silently delete a real
+    positive from the evaluation (it carries a Goal Deviation annotation), and
+    a general-purpose "just fix the JSON" fallback would hide a genuine schema
+    change behind a shrug the next time TRAIL is re-pinned.
+    """
+    raw = path.read_text(encoding="utf-8")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        patched = _TRAILING_COMMA.sub(r"\1", raw)
+        if patched == raw:
+            raise
+        parsed = json.loads(patched)  # a second failure is a real schema change
+        REPAIRED[path.name] = "trailing comma before a closing bracket"
+        return parsed
 
 
 def _tool_turn(attrs: dict) -> tuple[str, str] | None:
@@ -219,13 +303,16 @@ def load_trail(
             ann_path = ann_dir / path.name
             if not ann_path.is_file():
                 continue
-            trace = json.loads(path.read_text(encoding="utf-8"))
-            annotation = json.loads(ann_path.read_text(encoding="utf-8"))
-            categories = frozenset(
+            trace = _load_json(path)
+            annotation = _load_json(ann_path)
+            raw_categories = [
                 e["category"]
                 for e in (annotation.get("errors") or [])
                 if e.get("category")
-            )
+            ]
+            for value in raw_categories:
+                RAW_TO_CANONICAL[value] = canonical_category(value)
+            categories = frozenset(canonical_category(c) for c in raw_categories)
             name = f"{split}/{path.stem}"
             out[name] = TrailTrace(
                 name=name,

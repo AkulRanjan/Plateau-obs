@@ -422,5 +422,303 @@
         "check_build_status"
       ]
     }
+  },
+  "trail": {
+    "dataset": {
+      "id": "PatronusAI/TRAIL",
+      "revision": "b424ce63d5973d5dcd7169b1bc3c07ccdee276d1",
+      "paper": "arXiv:2505.08638",
+      "licence": "MIT, gated: must not be reshared outside a gated/private HF repo",
+      "vendored": false
+    },
+    "scope_note": "REAL agent traces, not hand-written: GAIA via OpenDeepResearch on o3-mini, SWE-Bench Lite via CodeAct on claude-3-7-sonnet, captured as OpenInference spans and annotated by four experts. The two judgement calls -- which spans are turns, and which error categories mean 'should have tripped' -- are ours, not TRAIL's, and every variant of both is reported here rather than only the one that flatters us.",
+    "default_mapping": "primary",
+    "mappings": {
+      "strict": [
+        "resource abuse"
+      ],
+      "primary": [
+        "context handling failure",
+        "resource abuse",
+        "task orchestration"
+      ],
+      "broad": [
+        "context handling failure",
+        "goal deviation",
+        "poor information retrieval",
+        "resource abuse",
+        "task orchestration"
+      ]
+    },
+    "span_mode_shown": "tool+llm",
+    "corpus": {
+      "n_traces": 148,
+      "n_usable": 73,
+      "n_excluded_too_short": 75,
+      "min_turns_required": 8,
+      "turns_per_trace": {
+        "min": 4,
+        "median": 7,
+        "max": 69
+      },
+      "by_split": {
+        "gaia": 47,
+        "swe_bench": 26
+      }
+    },
+    "by_mapping": {
+      "strict": {
+        "categories": [
+          "resource abuse"
+        ],
+        "n_positive": 38,
+        "n_negative": 35,
+        "perfect_detectors": [],
+        "detectors": {
+          "plateau": {
+            "n_positive": 38,
+            "n_negative": 35,
+            "recall": 0.5789,
+            "false_trip_rate": 0.6571,
+            "n_detected": 22,
+            "n_false_trips": 23,
+            "mean_turns_to_detection": 11.91
+          },
+          "plateau_action_only": {
+            "n_positive": 38,
+            "n_negative": 35,
+            "recall": 1,
+            "false_trip_rate": 1,
+            "n_detected": 38,
+            "n_false_trips": 35,
+            "mean_turns_to_detection": 4.97
+          },
+          "plateau_novelty_only": {
+            "n_positive": 38,
+            "n_negative": 35,
+            "recall": 0.3421,
+            "false_trip_rate": 0.5429,
+            "n_detected": 13,
+            "n_false_trips": 19,
+            "mean_turns_to_detection": 15.85
+          },
+          "exact_match": {
+            "n_positive": 38,
+            "n_negative": 35,
+            "recall": 0,
+            "false_trip_rate": 0,
+            "n_detected": 0,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": null
+          },
+          "exact_args": {
+            "n_positive": 38,
+            "n_negative": 35,
+            "recall": 0.5526,
+            "false_trip_rate": 0.4857,
+            "n_detected": 21,
+            "n_false_trips": 17,
+            "mean_turns_to_detection": 12.67
+          },
+          "lexical": {
+            "n_positive": 38,
+            "n_negative": 35,
+            "recall": 0.0789,
+            "false_trip_rate": 0.0286,
+            "n_detected": 3,
+            "n_false_trips": 1,
+            "mean_turns_to_detection": 27.67
+          },
+          "step_cap_25": {
+            "n_positive": 38,
+            "n_negative": 35,
+            "recall": 0.0789,
+            "false_trip_rate": 0.1143,
+            "n_detected": 3,
+            "n_false_trips": 4,
+            "mean_turns_to_detection": 27
+          },
+          "step_cap_10007": {
+            "n_positive": 38,
+            "n_negative": 35,
+            "recall": 0,
+            "false_trip_rate": 0,
+            "n_detected": 0,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": null
+          }
+        }
+      },
+      "primary": {
+        "categories": [
+          "context handling failure",
+          "resource abuse",
+          "task orchestration"
+        ],
+        "n_positive": 60,
+        "n_negative": 13,
+        "perfect_detectors": [],
+        "detectors": {
+          "plateau": {
+            "n_positive": 60,
+            "n_negative": 13,
+            "recall": 0.6333,
+            "false_trip_rate": 0.5385,
+            "n_detected": 38,
+            "n_false_trips": 7,
+            "mean_turns_to_detection": 12.37
+          },
+          "plateau_action_only": {
+            "n_positive": 60,
+            "n_negative": 13,
+            "recall": 1,
+            "false_trip_rate": 1,
+            "n_detected": 60,
+            "n_false_trips": 13,
+            "mean_turns_to_detection": 4.98
+          },
+          "plateau_novelty_only": {
+            "n_positive": 60,
+            "n_negative": 13,
+            "recall": 0.45,
+            "false_trip_rate": 0.3846,
+            "n_detected": 27,
+            "n_false_trips": 5,
+            "mean_turns_to_detection": 14.07
+          },
+          "exact_match": {
+            "n_positive": 60,
+            "n_negative": 13,
+            "recall": 0,
+            "false_trip_rate": 0,
+            "n_detected": 0,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": null
+          },
+          "exact_args": {
+            "n_positive": 60,
+            "n_negative": 13,
+            "recall": 0.5833,
+            "false_trip_rate": 0.2308,
+            "n_detected": 35,
+            "n_false_trips": 3,
+            "mean_turns_to_detection": 12.69
+          },
+          "lexical": {
+            "n_positive": 60,
+            "n_negative": 13,
+            "recall": 0.0667,
+            "false_trip_rate": 0,
+            "n_detected": 4,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": 22.75
+          },
+          "step_cap_25": {
+            "n_positive": 60,
+            "n_negative": 13,
+            "recall": 0.1167,
+            "false_trip_rate": 0,
+            "n_detected": 7,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": 27
+          },
+          "step_cap_10007": {
+            "n_positive": 60,
+            "n_negative": 13,
+            "recall": 0,
+            "false_trip_rate": 0,
+            "n_detected": 0,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": null
+          }
+        }
+      },
+      "broad": {
+        "categories": [
+          "context handling failure",
+          "goal deviation",
+          "poor information retrieval",
+          "resource abuse",
+          "task orchestration"
+        ],
+        "n_positive": 65,
+        "n_negative": 8,
+        "perfect_detectors": [],
+        "detectors": {
+          "plateau": {
+            "n_positive": 65,
+            "n_negative": 8,
+            "recall": 0.6462,
+            "false_trip_rate": 0.375,
+            "n_detected": 42,
+            "n_false_trips": 3,
+            "mean_turns_to_detection": 12.02
+          },
+          "plateau_action_only": {
+            "n_positive": 65,
+            "n_negative": 8,
+            "recall": 1,
+            "false_trip_rate": 1,
+            "n_detected": 65,
+            "n_false_trips": 8,
+            "mean_turns_to_detection": 4.98
+          },
+          "plateau_novelty_only": {
+            "n_positive": 65,
+            "n_negative": 8,
+            "recall": 0.4615,
+            "false_trip_rate": 0.25,
+            "n_detected": 30,
+            "n_false_trips": 2,
+            "mean_turns_to_detection": 13.5
+          },
+          "exact_match": {
+            "n_positive": 65,
+            "n_negative": 8,
+            "recall": 0,
+            "false_trip_rate": 0,
+            "n_detected": 0,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": null
+          },
+          "exact_args": {
+            "n_positive": 65,
+            "n_negative": 8,
+            "recall": 0.5538,
+            "false_trip_rate": 0.25,
+            "n_detected": 36,
+            "n_false_trips": 2,
+            "mean_turns_to_detection": 12.64
+          },
+          "lexical": {
+            "n_positive": 65,
+            "n_negative": 8,
+            "recall": 0.0615,
+            "false_trip_rate": 0,
+            "n_detected": 4,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": 22.75
+          },
+          "step_cap_25": {
+            "n_positive": 65,
+            "n_negative": 8,
+            "recall": 0.1077,
+            "false_trip_rate": 0,
+            "n_detected": 7,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": 27
+          },
+          "step_cap_10007": {
+            "n_positive": 65,
+            "n_negative": 8,
+            "recall": 0,
+            "false_trip_rate": 0,
+            "n_detected": 0,
+            "n_false_trips": 0,
+            "mean_turns_to_detection": null
+          }
+        }
+      }
+    }
   }
 }

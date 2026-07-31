@@ -50718,5 +50718,1394 @@
         "mean_turns_to_detection": 16.33
       }
     }
+  },
+  "trail_comparison": {
+    "encoder": {
+      "model_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "dim": 384,
+      "seed": 1337,
+      "probe_sha256": "aaca066b35a72867ee5d1ddca0558c52b8f8dcaaf5c274dadac95df0f1983ccb",
+      "probe_sha256_round6": "0eaa4fcebc4ccdd14bf689c3ce3604dc719ea2db713d1e69a30939183caec480"
+    },
+    "dataset": {
+      "id": "PatronusAI/TRAIL",
+      "revision": "b424ce63d5973d5dcd7169b1bc3c07ccdee276d1",
+      "paper": "arXiv:2505.08638",
+      "licence": "MIT, gated: must not be reshared outside a gated/private HF repo",
+      "vendored": false
+    },
+    "scope_note": "REAL agent traces, not hand-written: GAIA via OpenDeepResearch on o3-mini, SWE-Bench Lite via CodeAct on claude-3-7-sonnet, captured as OpenInference spans and annotated by four experts. The two judgement calls -- which spans are turns, and which error categories mean 'should have tripped' -- are ours, not TRAIL's, and every variant of both is reported here rather than only the one that flatters us.",
+    "max_text_chars": 2000,
+    "span_modes": {
+      "tool": [
+        "TOOL"
+      ],
+      "tool+llm": [
+        "TOOL",
+        "LLM"
+      ]
+    },
+    "mappings": {
+      "strict": [
+        "resource abuse"
+      ],
+      "primary": [
+        "context handling failure",
+        "resource abuse",
+        "task orchestration"
+      ],
+      "broad": [
+        "context handling failure",
+        "goal deviation",
+        "poor information retrieval",
+        "resource abuse",
+        "task orchestration"
+      ]
+    },
+    "default_mapping": "primary",
+    "observed_categories": {
+      "instruction non compliance": 78,
+      "formatting": 74,
+      "goal deviation": 64,
+      "language only": 50,
+      "context handling failure": 44,
+      "resource abuse": 42,
+      "task orchestration": 39,
+      "tool related": 39,
+      "tool selection": 37,
+      "poor information retrieval": 29,
+      "incorrect problem identification": 20,
+      "tool output misinterpretation": 14,
+      "environment setup": 9,
+      "authentication": 5,
+      "resource not found": 4,
+      "resource exhaustion": 3,
+      "tool definition issue": 3,
+      "service": 2,
+      "timeout issue": 2
+    },
+    "raw_to_canonical": {
+      " Incorrect Problem Identification": "incorrect problem identification",
+      "Authentication Errors": "authentication",
+      "Context Handling Failure": "context handling failure",
+      "Context Handling Failures": "context handling failure",
+      "Environment Setup Errors": "environment setup",
+      "Formatting Error": "formatting",
+      "Formatting Errors": "formatting",
+      "Goal Deviation": "goal deviation",
+      "Goal deviation": "goal deviation",
+      "Incorrect Memory Usage": "context handling failure",
+      "Incorrect Problem Identification": "incorrect problem identification",
+      "Instruction Non-Compliance": "instruction non compliance",
+      "Instruction Non-compliance": "instruction non compliance",
+      "Instruction non complience": "instruction non compliance",
+      "Language-Only": "language only",
+      "Language-only": "language only",
+      "Poor Information Retrieval": "poor information retrieval",
+      "Poor Information retrieval": "poor information retrieval",
+      "Resource Abuse": "resource abuse",
+      "Resource Exhaustion": "resource exhaustion",
+      "Resource Not Found": "resource not found",
+      "Service Errors": "service",
+      "Task Orchestration": "task orchestration",
+      "Task Orchestration Error": "task orchestration",
+      "Task Orchestration Errors": "task orchestration",
+      "Timeout Issues": "timeout issue",
+      "Tool Definition Issues": "tool definition issue",
+      "Tool Output Misinterpretation": "tool output misinterpretation",
+      "Tool Selection": "tool selection",
+      "Tool Selection Errors": "tool selection",
+      "Tool-related": "tool related"
+    },
+    "repaired_source_files": {
+      "a96c6811716c0473b86a23321db79c34.json": "trailing comma before a closing bracket"
+    },
+    "corpus": {
+      "tool": {
+        "n_traces": 148,
+        "n_usable": 14,
+        "n_excluded_too_short": 134,
+        "min_turns_required": 8,
+        "turns_per_trace": {
+          "min": 0,
+          "median": 0,
+          "max": 36
+        },
+        "by_split": {
+          "gaia": 14,
+          "swe_bench": 0
+        }
+      },
+      "tool+llm": {
+        "n_traces": 148,
+        "n_usable": 73,
+        "n_excluded_too_short": 75,
+        "min_turns_required": 8,
+        "turns_per_trace": {
+          "min": 4,
+          "median": 7,
+          "max": 69
+        },
+        "by_split": {
+          "gaia": 47,
+          "swe_bench": 26
+        }
+      }
+    },
+    "results": {
+      "tool": {
+        "strict": {
+          "categories": [
+            "resource abuse"
+          ],
+          "n_positive": 8,
+          "n_negative": 6,
+          "detectors": {
+            "plateau": {
+              "all": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.5,
+                "false_trip_rate": 0.5,
+                "n_detected": 4,
+                "n_false_trips": 3,
+                "mean_turns_to_detection": 7.25
+              },
+              "gaia": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.5,
+                "false_trip_rate": 0.5,
+                "n_detected": 4,
+                "n_false_trips": 3,
+                "mean_turns_to_detection": 7.25
+              }
+            },
+            "plateau_action_only": {
+              "all": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 8,
+                "n_false_trips": 6,
+                "mean_turns_to_detection": 4.75
+              },
+              "gaia": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 8,
+                "n_false_trips": 6,
+                "mean_turns_to_detection": 4.75
+              }
+            },
+            "plateau_novelty_only": {
+              "all": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.125,
+                "false_trip_rate": 0.1667,
+                "n_detected": 1,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 11.0
+              },
+              "gaia": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.125,
+                "false_trip_rate": 0.1667,
+                "n_detected": 1,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 11.0
+              }
+            },
+            "exact_match": {
+              "all": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "exact_args": {
+              "all": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.25,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.5
+              },
+              "gaia": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.25,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.5
+              }
+            },
+            "lexical": {
+              "all": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.25,
+                "false_trip_rate": 0.3333,
+                "n_detected": 2,
+                "n_false_trips": 2,
+                "mean_turns_to_detection": 14.5
+              },
+              "gaia": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.25,
+                "false_trip_rate": 0.3333,
+                "n_detected": 2,
+                "n_false_trips": 2,
+                "mean_turns_to_detection": 14.5
+              }
+            },
+            "step_cap_25": {
+              "all": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.125,
+                "false_trip_rate": 0.1667,
+                "n_detected": 1,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 27.0
+              },
+              "gaia": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.125,
+                "false_trip_rate": 0.1667,
+                "n_detected": 1,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 27.0
+              }
+            },
+            "step_cap_10007": {
+              "all": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 8,
+                "n_negative": 6,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            }
+          },
+          "perfect_detectors": []
+        },
+        "primary": {
+          "categories": [
+            "context handling failure",
+            "resource abuse",
+            "task orchestration"
+          ],
+          "n_positive": 13,
+          "n_negative": 1,
+          "detectors": {
+            "plateau": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.5385,
+                "false_trip_rate": 0.0,
+                "n_detected": 7,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 9.14
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.5385,
+                "false_trip_rate": 0.0,
+                "n_detected": 7,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 9.14
+              }
+            },
+            "plateau_action_only": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 13,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 4.85
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 13,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 4.85
+              }
+            },
+            "plateau_novelty_only": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.0
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.0
+              }
+            },
+            "exact_match": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "exact_args": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.5
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.5
+              }
+            },
+            "lexical": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.3077,
+                "false_trip_rate": 0.0,
+                "n_detected": 4,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 9.25
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.3077,
+                "false_trip_rate": 0.0,
+                "n_detected": 4,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 9.25
+              }
+            },
+            "step_cap_25": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 27.0
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 27.0
+              }
+            },
+            "step_cap_10007": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            }
+          },
+          "perfect_detectors": []
+        },
+        "broad": {
+          "categories": [
+            "context handling failure",
+            "goal deviation",
+            "poor information retrieval",
+            "resource abuse",
+            "task orchestration"
+          ],
+          "n_positive": 13,
+          "n_negative": 1,
+          "detectors": {
+            "plateau": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.5385,
+                "false_trip_rate": 0.0,
+                "n_detected": 7,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 9.14
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.5385,
+                "false_trip_rate": 0.0,
+                "n_detected": 7,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 9.14
+              }
+            },
+            "plateau_action_only": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 13,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 4.85
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 13,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 4.85
+              }
+            },
+            "plateau_novelty_only": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.0
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.0
+              }
+            },
+            "exact_match": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "exact_args": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.5
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.5
+              }
+            },
+            "lexical": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.3077,
+                "false_trip_rate": 0.0,
+                "n_detected": 4,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 9.25
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.3077,
+                "false_trip_rate": 0.0,
+                "n_detected": 4,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 9.25
+              }
+            },
+            "step_cap_25": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 27.0
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.1538,
+                "false_trip_rate": 0.0,
+                "n_detected": 2,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 27.0
+              }
+            },
+            "step_cap_10007": {
+              "all": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 13,
+                "n_negative": 1,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            }
+          },
+          "perfect_detectors": []
+        }
+      },
+      "tool+llm": {
+        "strict": {
+          "categories": [
+            "resource abuse"
+          ],
+          "n_positive": 38,
+          "n_negative": 35,
+          "detectors": {
+            "plateau": {
+              "all": {
+                "n_positive": 38,
+                "n_negative": 35,
+                "recall": 0.5789,
+                "false_trip_rate": 0.6571,
+                "n_detected": 22,
+                "n_false_trips": 23,
+                "mean_turns_to_detection": 11.91
+              },
+              "gaia": {
+                "n_positive": 27,
+                "n_negative": 20,
+                "recall": 0.5556,
+                "false_trip_rate": 0.7,
+                "n_detected": 15,
+                "n_false_trips": 14,
+                "mean_turns_to_detection": 12.4
+              },
+              "swe_bench": {
+                "n_positive": 11,
+                "n_negative": 15,
+                "recall": 0.6364,
+                "false_trip_rate": 0.6,
+                "n_detected": 7,
+                "n_false_trips": 9,
+                "mean_turns_to_detection": 10.86
+              }
+            },
+            "plateau_action_only": {
+              "all": {
+                "n_positive": 38,
+                "n_negative": 35,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 38,
+                "n_false_trips": 35,
+                "mean_turns_to_detection": 4.97
+              },
+              "gaia": {
+                "n_positive": 27,
+                "n_negative": 20,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 27,
+                "n_false_trips": 20,
+                "mean_turns_to_detection": 5.0
+              },
+              "swe_bench": {
+                "n_positive": 11,
+                "n_negative": 15,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 11,
+                "n_false_trips": 15,
+                "mean_turns_to_detection": 4.91
+              }
+            },
+            "plateau_novelty_only": {
+              "all": {
+                "n_positive": 38,
+                "n_negative": 35,
+                "recall": 0.3421,
+                "false_trip_rate": 0.5429,
+                "n_detected": 13,
+                "n_false_trips": 19,
+                "mean_turns_to_detection": 15.85
+              },
+              "gaia": {
+                "n_positive": 27,
+                "n_negative": 20,
+                "recall": 0.3704,
+                "false_trip_rate": 0.55,
+                "n_detected": 10,
+                "n_false_trips": 11,
+                "mean_turns_to_detection": 17.6
+              },
+              "swe_bench": {
+                "n_positive": 11,
+                "n_negative": 15,
+                "recall": 0.2727,
+                "false_trip_rate": 0.5333,
+                "n_detected": 3,
+                "n_false_trips": 8,
+                "mean_turns_to_detection": 10.0
+              }
+            },
+            "exact_match": {
+              "all": {
+                "n_positive": 38,
+                "n_negative": 35,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 27,
+                "n_negative": 20,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "swe_bench": {
+                "n_positive": 11,
+                "n_negative": 15,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "exact_args": {
+              "all": {
+                "n_positive": 38,
+                "n_negative": 35,
+                "recall": 0.5526,
+                "false_trip_rate": 0.4857,
+                "n_detected": 21,
+                "n_false_trips": 17,
+                "mean_turns_to_detection": 12.67
+              },
+              "gaia": {
+                "n_positive": 27,
+                "n_negative": 20,
+                "recall": 0.4444,
+                "false_trip_rate": 0.3,
+                "n_detected": 12,
+                "n_false_trips": 6,
+                "mean_turns_to_detection": 13.92
+              },
+              "swe_bench": {
+                "n_positive": 11,
+                "n_negative": 15,
+                "recall": 0.8182,
+                "false_trip_rate": 0.7333,
+                "n_detected": 9,
+                "n_false_trips": 11,
+                "mean_turns_to_detection": 11.0
+              }
+            },
+            "lexical": {
+              "all": {
+                "n_positive": 38,
+                "n_negative": 35,
+                "recall": 0.0789,
+                "false_trip_rate": 0.0286,
+                "n_detected": 3,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 27.67
+              },
+              "gaia": {
+                "n_positive": 27,
+                "n_negative": 20,
+                "recall": 0.1111,
+                "false_trip_rate": 0.05,
+                "n_detected": 3,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 27.67
+              },
+              "swe_bench": {
+                "n_positive": 11,
+                "n_negative": 15,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "step_cap_25": {
+              "all": {
+                "n_positive": 38,
+                "n_negative": 35,
+                "recall": 0.0789,
+                "false_trip_rate": 0.1143,
+                "n_detected": 3,
+                "n_false_trips": 4,
+                "mean_turns_to_detection": 27.0
+              },
+              "gaia": {
+                "n_positive": 27,
+                "n_negative": 20,
+                "recall": 0.1111,
+                "false_trip_rate": 0.2,
+                "n_detected": 3,
+                "n_false_trips": 4,
+                "mean_turns_to_detection": 27.0
+              },
+              "swe_bench": {
+                "n_positive": 11,
+                "n_negative": 15,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "step_cap_10007": {
+              "all": {
+                "n_positive": 38,
+                "n_negative": 35,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 27,
+                "n_negative": 20,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "swe_bench": {
+                "n_positive": 11,
+                "n_negative": 15,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            }
+          },
+          "perfect_detectors": []
+        },
+        "primary": {
+          "categories": [
+            "context handling failure",
+            "resource abuse",
+            "task orchestration"
+          ],
+          "n_positive": 60,
+          "n_negative": 13,
+          "detectors": {
+            "plateau": {
+              "all": {
+                "n_positive": 60,
+                "n_negative": 13,
+                "recall": 0.6333,
+                "false_trip_rate": 0.5385,
+                "n_detected": 38,
+                "n_false_trips": 7,
+                "mean_turns_to_detection": 12.37
+              },
+              "gaia": {
+                "n_positive": 38,
+                "n_negative": 9,
+                "recall": 0.6053,
+                "false_trip_rate": 0.6667,
+                "n_detected": 23,
+                "n_false_trips": 6,
+                "mean_turns_to_detection": 12.96
+              },
+              "swe_bench": {
+                "n_positive": 22,
+                "n_negative": 4,
+                "recall": 0.6818,
+                "false_trip_rate": 0.25,
+                "n_detected": 15,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 11.47
+              }
+            },
+            "plateau_action_only": {
+              "all": {
+                "n_positive": 60,
+                "n_negative": 13,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 60,
+                "n_false_trips": 13,
+                "mean_turns_to_detection": 4.98
+              },
+              "gaia": {
+                "n_positive": 38,
+                "n_negative": 9,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 38,
+                "n_false_trips": 9,
+                "mean_turns_to_detection": 5.0
+              },
+              "swe_bench": {
+                "n_positive": 22,
+                "n_negative": 4,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 22,
+                "n_false_trips": 4,
+                "mean_turns_to_detection": 4.95
+              }
+            },
+            "plateau_novelty_only": {
+              "all": {
+                "n_positive": 60,
+                "n_negative": 13,
+                "recall": 0.45,
+                "false_trip_rate": 0.3846,
+                "n_detected": 27,
+                "n_false_trips": 5,
+                "mean_turns_to_detection": 14.07
+              },
+              "gaia": {
+                "n_positive": 38,
+                "n_negative": 9,
+                "recall": 0.4474,
+                "false_trip_rate": 0.4444,
+                "n_detected": 17,
+                "n_false_trips": 4,
+                "mean_turns_to_detection": 16.18
+              },
+              "swe_bench": {
+                "n_positive": 22,
+                "n_negative": 4,
+                "recall": 0.4545,
+                "false_trip_rate": 0.25,
+                "n_detected": 10,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 10.5
+              }
+            },
+            "exact_match": {
+              "all": {
+                "n_positive": 60,
+                "n_negative": 13,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 38,
+                "n_negative": 9,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "swe_bench": {
+                "n_positive": 22,
+                "n_negative": 4,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "exact_args": {
+              "all": {
+                "n_positive": 60,
+                "n_negative": 13,
+                "recall": 0.5833,
+                "false_trip_rate": 0.2308,
+                "n_detected": 35,
+                "n_false_trips": 3,
+                "mean_turns_to_detection": 12.69
+              },
+              "gaia": {
+                "n_positive": 38,
+                "n_negative": 9,
+                "recall": 0.4474,
+                "false_trip_rate": 0.1111,
+                "n_detected": 17,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 14.47
+              },
+              "swe_bench": {
+                "n_positive": 22,
+                "n_negative": 4,
+                "recall": 0.8182,
+                "false_trip_rate": 0.5,
+                "n_detected": 18,
+                "n_false_trips": 2,
+                "mean_turns_to_detection": 11.0
+              }
+            },
+            "lexical": {
+              "all": {
+                "n_positive": 60,
+                "n_negative": 13,
+                "recall": 0.0667,
+                "false_trip_rate": 0.0,
+                "n_detected": 4,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 22.75
+              },
+              "gaia": {
+                "n_positive": 38,
+                "n_negative": 9,
+                "recall": 0.1053,
+                "false_trip_rate": 0.0,
+                "n_detected": 4,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 22.75
+              },
+              "swe_bench": {
+                "n_positive": 22,
+                "n_negative": 4,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "step_cap_25": {
+              "all": {
+                "n_positive": 60,
+                "n_negative": 13,
+                "recall": 0.1167,
+                "false_trip_rate": 0.0,
+                "n_detected": 7,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 27.0
+              },
+              "gaia": {
+                "n_positive": 38,
+                "n_negative": 9,
+                "recall": 0.1842,
+                "false_trip_rate": 0.0,
+                "n_detected": 7,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 27.0
+              },
+              "swe_bench": {
+                "n_positive": 22,
+                "n_negative": 4,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "step_cap_10007": {
+              "all": {
+                "n_positive": 60,
+                "n_negative": 13,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 38,
+                "n_negative": 9,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "swe_bench": {
+                "n_positive": 22,
+                "n_negative": 4,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            }
+          },
+          "perfect_detectors": []
+        },
+        "broad": {
+          "categories": [
+            "context handling failure",
+            "goal deviation",
+            "poor information retrieval",
+            "resource abuse",
+            "task orchestration"
+          ],
+          "n_positive": 65,
+          "n_negative": 8,
+          "detectors": {
+            "plateau": {
+              "all": {
+                "n_positive": 65,
+                "n_negative": 8,
+                "recall": 0.6462,
+                "false_trip_rate": 0.375,
+                "n_detected": 42,
+                "n_false_trips": 3,
+                "mean_turns_to_detection": 12.02
+              },
+              "gaia": {
+                "n_positive": 42,
+                "n_negative": 5,
+                "recall": 0.619,
+                "false_trip_rate": 0.6,
+                "n_detected": 26,
+                "n_false_trips": 3,
+                "mean_turns_to_detection": 12.46
+              },
+              "swe_bench": {
+                "n_positive": 23,
+                "n_negative": 3,
+                "recall": 0.6957,
+                "false_trip_rate": 0.0,
+                "n_detected": 16,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 11.31
+              }
+            },
+            "plateau_action_only": {
+              "all": {
+                "n_positive": 65,
+                "n_negative": 8,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 65,
+                "n_false_trips": 8,
+                "mean_turns_to_detection": 4.98
+              },
+              "gaia": {
+                "n_positive": 42,
+                "n_negative": 5,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 42,
+                "n_false_trips": 5,
+                "mean_turns_to_detection": 5.0
+              },
+              "swe_bench": {
+                "n_positive": 23,
+                "n_negative": 3,
+                "recall": 1.0,
+                "false_trip_rate": 1.0,
+                "n_detected": 23,
+                "n_false_trips": 3,
+                "mean_turns_to_detection": 4.96
+              }
+            },
+            "plateau_novelty_only": {
+              "all": {
+                "n_positive": 65,
+                "n_negative": 8,
+                "recall": 0.4615,
+                "false_trip_rate": 0.25,
+                "n_detected": 30,
+                "n_false_trips": 2,
+                "mean_turns_to_detection": 13.5
+              },
+              "gaia": {
+                "n_positive": 42,
+                "n_negative": 5,
+                "recall": 0.4524,
+                "false_trip_rate": 0.4,
+                "n_detected": 19,
+                "n_false_trips": 2,
+                "mean_turns_to_detection": 15.32
+              },
+              "swe_bench": {
+                "n_positive": 23,
+                "n_negative": 3,
+                "recall": 0.4783,
+                "false_trip_rate": 0.0,
+                "n_detected": 11,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 10.36
+              }
+            },
+            "exact_match": {
+              "all": {
+                "n_positive": 65,
+                "n_negative": 8,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 42,
+                "n_negative": 5,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "swe_bench": {
+                "n_positive": 23,
+                "n_negative": 3,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "exact_args": {
+              "all": {
+                "n_positive": 65,
+                "n_negative": 8,
+                "recall": 0.5538,
+                "false_trip_rate": 0.25,
+                "n_detected": 36,
+                "n_false_trips": 2,
+                "mean_turns_to_detection": 12.64
+              },
+              "gaia": {
+                "n_positive": 42,
+                "n_negative": 5,
+                "recall": 0.4048,
+                "false_trip_rate": 0.2,
+                "n_detected": 17,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 14.47
+              },
+              "swe_bench": {
+                "n_positive": 23,
+                "n_negative": 3,
+                "recall": 0.8261,
+                "false_trip_rate": 0.3333,
+                "n_detected": 19,
+                "n_false_trips": 1,
+                "mean_turns_to_detection": 11.0
+              }
+            },
+            "lexical": {
+              "all": {
+                "n_positive": 65,
+                "n_negative": 8,
+                "recall": 0.0615,
+                "false_trip_rate": 0.0,
+                "n_detected": 4,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 22.75
+              },
+              "gaia": {
+                "n_positive": 42,
+                "n_negative": 5,
+                "recall": 0.0952,
+                "false_trip_rate": 0.0,
+                "n_detected": 4,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 22.75
+              },
+              "swe_bench": {
+                "n_positive": 23,
+                "n_negative": 3,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "step_cap_25": {
+              "all": {
+                "n_positive": 65,
+                "n_negative": 8,
+                "recall": 0.1077,
+                "false_trip_rate": 0.0,
+                "n_detected": 7,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 27.0
+              },
+              "gaia": {
+                "n_positive": 42,
+                "n_negative": 5,
+                "recall": 0.1667,
+                "false_trip_rate": 0.0,
+                "n_detected": 7,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": 27.0
+              },
+              "swe_bench": {
+                "n_positive": 23,
+                "n_negative": 3,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            },
+            "step_cap_10007": {
+              "all": {
+                "n_positive": 65,
+                "n_negative": 8,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "gaia": {
+                "n_positive": 42,
+                "n_negative": 5,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              },
+              "swe_bench": {
+                "n_positive": 23,
+                "n_negative": 3,
+                "recall": 0.0,
+                "false_trip_rate": 0.0,
+                "n_detected": 0,
+                "n_false_trips": 0,
+                "mean_turns_to_detection": null
+              }
+            }
+          },
+          "perfect_detectors": []
+        }
+      }
+    }
   }
 }

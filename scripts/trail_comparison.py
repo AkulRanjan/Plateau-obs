@@ -42,6 +42,8 @@ from eval.baselines.step_cap import (  # noqa: E402
 )
 from eval.trail import (  # noqa: E402
     DATASET_NOTE,
+    RAW_TO_CANONICAL,
+    REPAIRED,
     DEFAULT_MAPPING,
     MAPPINGS,
     MAX_TEXT_CHARS,
@@ -248,6 +250,8 @@ def main() -> int:
         "mappings": {k: sorted(v) for k, v in MAPPINGS.items()},
         "default_mapping": DEFAULT_MAPPING,
         "observed_categories": categories,
+        "raw_to_canonical": dict(sorted(RAW_TO_CANONICAL.items())),
+        "repaired_source_files": dict(REPAIRED),
         "corpus": corpus,
         "results": results,
     }

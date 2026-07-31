@@ -344,6 +344,54 @@ if (lt) {
     );
   }
 
+  // The synthetic long traces are ones we wrote, so they can only agree with
+  // what we already believed. If they are on screen, the real ones must be too:
+  // on TRAIL nothing reaches recall 1.00 with zero false trips and Plateau
+  // false-trips over half the healthy traces, and a jury console that showed
+  // only the table above would be showing the evaluation that flatters us.
+  const trail = fixturesDoc.trail;
+  check(
+    trail != null,
+    "fixtures.json shows the hand-written long traces but carries no TRAIL " +
+      "block. Run scripts/trail_comparison.py then npm run extract-metrics — " +
+      "the synthetic table must never be the only detection evidence on screen."
+  );
+  if (trail) {
+    const srcTrail = metrics.trail_comparison;
+    check(srcTrail != null, "fixtures.json has a TRAIL block, metrics.json does not");
+    for (const mapping of Object.keys(srcTrail?.mappings ?? {})) {
+      check(
+        trail.by_mapping?.[mapping] != null,
+        `TRAIL mapping '${mapping}' is measured but not carried to the UI; all ` +
+          `three are reported so the ground-truth choice stays visible`
+      );
+    }
+    const shown = trail.by_mapping?.[trail.default_mapping];
+    const measured =
+      srcTrail?.results?.[trail.span_mode_shown]?.[trail.default_mapping];
+    check(
+      JSON.stringify(shown?.perfect_detectors ?? null) ===
+        JSON.stringify(measured?.perfect_detectors ?? null),
+      "TRAIL perfect_detectors differs from metrics.json — run extract-metrics"
+    );
+    for (const [name, row] of Object.entries(shown?.detectors ?? {})) {
+      const src = measured?.detectors?.[name]?.all;
+      check(
+        src != null && row.recall === src.recall &&
+          row.false_trip_rate === src.false_trip_rate,
+        `TRAIL ${name} is ${row.recall}/${row.false_trip_rate} in the UI but ` +
+          `${src?.recall}/${src?.false_trip_rate} in metrics.json`
+      );
+    }
+    // The count of excluded traces is the benchmark's biggest caveat. It has to
+    // travel with the numbers, or the sample looks larger than it is.
+    check(
+      typeof trail.corpus?.n_excluded_too_short === "number",
+      "the TRAIL block carries no excluded-trace count; most traces are too " +
+        "short to evaluate and the panel must be able to say so"
+    );
+  }
+
   // Plateau is not the fastest detector on byte-identical stalls and should not
   // be presented as though it were. Whichever detector has the lowest
   // turns-to-detection, its row has to be in the panel.

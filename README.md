@@ -58,6 +58,78 @@ fixture rather than a margin. **It remains provisional** — nothing here measur
 what a *real* agent's rewording repertoire is, which is the number the window
 has to exceed.
 
+## Real traces: TRAIL
+
+`metrics.json → trail_comparison`. 148 expert-annotated agent traces from
+[TRAIL](https://huggingface.co/datasets/PatronusAI/TRAIL) (arXiv:2505.08638) —
+GAIA via OpenDeepResearch on o3-mini, SWE-Bench Lite via CodeAct on
+claude-3-7-sonnet. Gated, MIT, never committed.
+
+**This is the table to read first. The synthetic results in the next section
+do not survive contact with it.**
+
+| detector | recall | false-trip | mean TTD |
+|---|---|---|---|
+| plateau | **0.63** | **0.54** | 12.4 |
+| exact-args debounce | 0.58 | 0.23 | 12.7 |
+| plateau_novelty_only *(ablation)* | 0.45 | 0.38 | 14.1 |
+| step-cap (LangGraph 25) | 0.12 | 0.00 | 27.0 |
+| lexical (`agent-loop-detector`) | 0.07 | 0.00 | 22.8 |
+| exact-match (OpenHands) | 0.00 | 0.00 | — |
+| plateau_action_only *(ablation)* | 1.00 | 1.00 | 5.0 |
+
+`tool+llm` spans, `primary` mapping, 60 positives / 13 negatives.
+
+**`perfect_detectors` is empty in all six mode × mapping combinations.** On our
+own traces Plateau reached recall 1.00 with zero false trips. On real ones
+nothing does, and Plateau false-trips **more than half** the healthy traces.
+The honest summary is that our synthetic evaluation was optimistic about us, and
+we only know that because we went and got real traces.
+
+What survives: Plateau has the highest recall of any non-degenerate detector,
+and the gap is not small. The lexical baseline that matched us on synthetic
+traces essentially **does not fire at all** on real ones — recall 0.07. Its
+0.00 false-trip rate is the false-trip rate of a detector that never fires.
+Exact-args is the real competitor here, not lexical.
+
+By split (`primary`, `tool+llm`):
+
+| detector | GAIA recall / false-trip | SWE-Bench recall / false-trip |
+|---|---|---|
+| plateau | 0.61 / 0.67 | 0.68 / 0.25 |
+| exact-args | 0.45 / 0.11 | 0.82 / 0.50 |
+| lexical | 0.11 / 0.00 | 0.00 / 0.00 |
+
+Averaging these would hide that they are different problems.
+
+### Everything wrong with this benchmark, listed
+
+1. **Most traces are too short to evaluate.** A detector needing
+   `trip_after_stall` consecutive stagnant turns cannot fire on a short trace,
+   so including those would report trace length as recall — the mistake the
+   two-turn fixtures made. At `MIN_TURNS = 8`, **75 of 148 traces are excluded**
+   in `tool+llm` mode. In `tool`-spans-only mode just **14 of 148** survive, with
+   a single negative — a false-trip rate over n=1 is not a measurement, and that
+   mode should not be quoted.
+2. **13 negatives is a small denominator.** One trace moves the false-trip rate
+   by 8 points.
+3. **Two normalisation decisions are ours, not TRAIL's.** Which spans become
+   turns, and which error categories mean "should have tripped". Both are
+   swept — 2 span modes × 3 mappings, all six reported — but the `primary`
+   mapping quoted above is a judgement call about what "stopped learning" means.
+   The full mapping and the raw→canonical category table are in `metrics.json`
+   so you can disagree and recompute.
+4. **The annotations needed repair.** The pinned revision holds **31 distinct
+   category strings for ~19 leaves** — casing, pluralisation, a leading space,
+   and one typo (`Instruction non complience`). Exact-string matching silently
+   drops 8 labelled traces. One annotation file has a trailing comma and is not
+   valid JSON; it is repaired on load, and the repair is recorded in
+   `metrics.json → trail_comparison.repaired_source_files` rather than applied
+   quietly.
+5. **Treating an LLM completion as an observation overstates the environment.**
+   In a CodeAct loop the model's output *is* the action. `tool` mode is the
+   faithful reading, and it is the one with too little data.
+
 ## Detection on long traces
 
 Five classes, 16–61 turns. `metrics.json → long_trace_comparison`.
@@ -75,7 +147,10 @@ Five classes, 16–61 turns. `metrics.json → long_trace_comparison`.
 | step-cap (LangGraph 10007) | 0.00 | 0.00 | — |
 
 `plateau_idempotent` is the first detector in this project's history to reach
-recall 1.00 with zero false trips. It is the only one.
+recall 1.00 with zero false trips on these traces. **It does not survive real
+traces** — see TRAIL above, where nothing reaches recall 1.00 with zero false
+trips and Plateau's false-trip rate is 0.54. Treat this table as a
+statement about traces we wrote, because that is what it is.
 
 ### Our worst numbers, stated plainly
 
@@ -226,15 +301,17 @@ than a hard stop.
    which, because that depends on how many distinct ways a real agent rewords
    itself before repeating. See the caveat under "The result that matters most."
 
-6. **Non-synthetic evaluation is not yet complete.** Every trace measured above
-   is hand-written by us, which means it can only confirm what we already
-   believed when we wrote it. `scripts/fetch_trail.py` and
-   `scripts/trail_comparison.py` run all nine detectors against
-   [TRAIL](https://huggingface.co/datasets/PatronusAI/TRAIL) — 148 real agent
-   traces, expert-annotated — and write `metrics.json → trail_comparison`. TRAIL
-   is gated and is never committed; `data/trail/` is gitignored. **Until that
-   block exists in `metrics.json`, no number on this page is evidence about real
-   agent behaviour.**
+6. **On real traces, Plateau false-trips more than half of healthy runs.**
+   Recall 0.63, false-trip 0.54 on TRAIL under the `primary` mapping — against
+   0.00 false trips on our own traces. No detector reaches recall 1.00 with zero
+   false trips on real data. This is the single biggest open problem and it is
+   not close. See the TRAIL section for the five things wrong with the benchmark
+   itself, which are also real.
+
+7. **The synthetic traces flattered us and we could not have known that from
+   them.** Every hand-written trace can only confirm what its author already
+   believed. The gap between the two tables above is the argument for never
+   quoting the synthetic ones alone.
 
 ## Reproducibility, and the limit of it
 

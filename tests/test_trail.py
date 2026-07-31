@@ -20,6 +20,7 @@ import pytest
 
 from eval.trail import (
     BROAD,
+    canonical_category,
     DEFAULT_MAPPING,
     MAPPINGS,
     MAX_TEXT_CHARS,
@@ -174,8 +175,54 @@ def test_formatting_errors_are_never_a_stagnation_label():
     annotations. A loop detector must not be credited for catching them, so no
     mapping may include them -- those traces are our negatives."""
     for name, categories in MAPPINGS.items():
-        assert "Formatting Errors" not in categories, name
-        assert "Instruction Non-compliance" not in categories, name
+        assert canonical_category("Formatting Errors") not in categories, name
+        assert canonical_category("Instruction Non-compliance") not in categories, name
+
+
+# --- category canonicalisation ------------------------------------------------
+
+
+def test_real_category_variants_collapse_to_one_leaf():
+    """The pinned revision holds 31 distinct strings for ~17 leaves. Exact
+    matching silently drops 8 labelled traces, which would read as a slightly
+    better false-trip rate and nothing else. Every string below is one that
+    actually appears in the data."""
+    groups = [
+        ["Task Orchestration", "Task Orchestration Errors", "Task Orchestration Error"],
+        ["Context Handling Failures", "Context Handling Failure"],
+        ["Goal Deviation", "Goal deviation"],
+        ["Poor Information Retrieval", "Poor Information retrieval"],
+        ["Tool Selection Errors", "Tool Selection"],
+        ["Formatting Errors", "Formatting Error"],
+        ["Language-only", "Language-Only"],
+        ["Incorrect Problem Identification", " Incorrect Problem Identification"],
+        ["Instruction Non-compliance", "Instruction Non-Compliance",
+         "Instruction non complience"],
+    ]
+    for variants in groups:
+        canonical = {canonical_category(v) for v in variants}
+        assert len(canonical) == 1, f"{variants} -> {canonical}"
+
+
+def test_canonicalisation_does_not_merge_distinct_leaves():
+    """Depluralising must not collapse two real categories into one."""
+    distinct = [
+        "Resource Abuse", "Resource Exhaustion", "Resource Not Found",
+        "Task Orchestration", "Context Handling Failures", "Goal Deviation",
+        "Poor Information Retrieval", "Tool Selection Errors", "Tool-related",
+        "Formatting Errors", "Instruction Non-compliance",
+    ]
+    canonical = [canonical_category(c) for c in distinct]
+    assert len(set(canonical)) == len(distinct), sorted(canonical)
+
+
+def test_the_stagnation_mappings_survive_canonicalisation():
+    """Each mapping must still match the real strings it is meant to select."""
+    assert canonical_category("Resource Abuse") in MAPPINGS["strict"]
+    assert canonical_category("Task Orchestration Errors") in MAPPINGS["primary"]
+    assert canonical_category("Context Handling Failure") in MAPPINGS["primary"]
+    assert canonical_category("Goal deviation") in MAPPINGS["broad"]
+    assert canonical_category("Goal deviation") not in MAPPINGS["primary"]
 
 
 # --- end-to-end over a fake snapshot -----------------------------------------
@@ -221,7 +268,9 @@ def test_a_trace_with_no_annotation_file_is_skipped_not_labelled_negative(
 
 def test_observed_categories_counts_traces_not_errors(tmp_path, trace):
     write_snapshot(tmp_path, trace, ["Goal Deviation", "Goal Deviation"])
-    assert observed_categories(load_trail(tmp_path)) == {"Goal Deviation": 1}
+    assert observed_categories(load_trail(tmp_path)) == {
+        canonical_category("Goal Deviation"): 1
+    }
 
 
 def test_missing_root_names_the_fetch_script(tmp_path):

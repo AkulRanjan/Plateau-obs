@@ -118,13 +118,26 @@ that ceiling from this agent's own productive turns. It refuses, hands back the
 reason, and points at turn 4 as the last thing that actually produced
 information.
 
-**The honest caveat, before anyone asks.** Plateau trips here because the search
-tool returns a byte-identical "No results found." every time, which is what a
-real search API does. The project measured the limit: when non-answers are
-worded *differently* each time, MiniLM scores them 0.44–1.01 novelty and Plateau
-does **not** trip (`metrics.json → long_trace_comparison`). So this is a real
-detection on a real agent, and the semantic-paraphrase claim remains unproven.
-Say it before a judge finds it.
+**The honest caveats, before anyone asks.** Say these before a judge finds them.
+
+1. Plateau trips here because the search tool returns a byte-identical
+   "No results found." every time, which is what a real search API does. The
+   reworded case needs a comparison window longer than the agent's rewording
+   repertoire: at a window of 8 we missed it, at 16 we catch it
+   (`metrics.json → long_trace_sweep`). That window is the only one of five
+   parameters that changes the outcome, and it is still provisional.
+2. The lexical baseline detects *sooner* than we do on these traces — 8.0 turns
+   against 13.67. It just cannot see the reworded stall at all.
+3. Zero false trips depends on polling tools declaring `idempotent: true`. That
+   is a burden on whoever installs this, not something Plateau detects.
+4. The world these tools read is hand-written. The agent's decisions are real;
+   the observations are a fixture.
+5. **On real traces we are much worse.** Against TRAIL's 148 expert-annotated
+   agent traces: recall 0.63, false-trip **0.54**
+   (`metrics.json → trail_comparison`). No detector tested reaches recall 1.00
+   with zero false trips on real data. We still have the highest recall of
+   anything that fires at all — the lexical baseline manages 0.07 — but never
+   quote the synthetic table without this one.
 
 ---
 

@@ -116,11 +116,23 @@ screen for a beat — do not talk over them.
 > burned before the breaker opens, it beats us on every trace it can see. What
 > it cannot see is the reworded stall, which it misses completely.
 >
-> Third, our zero false-trip rate depends on the tool author declaring polling
-> tools idempotent. That is work we hand to whoever installs this. Forget it and
-> a healthy poller trips at turn ten.
+> Third — and this is the one that matters. Everything I just said was
+> measured on traces we wrote ourselves. So we ran all of it against TRAIL:
+> a hundred and forty-eight real agent traces, annotated by four experts.
 >
-> Nobody else in this space publishes their false-trip rate. We do.
+> On real traces we false-trip **more than half** of the healthy runs. Recall
+> zero-point-six-three, false-trip zero-point-five-four. Nothing we tested
+> reaches perfect recall with zero false trips on real data — not us, not any
+> baseline. Our own synthetic evaluation was optimistic about us, and the only
+> reason we know that is that we went and got real traces.
+>
+> What did survive: we have the highest recall of anything that fires at all.
+> The token-overlap baseline that matched us on our traces barely fires on
+> real ones — recall zero-point-zero-seven. A zero false-trip rate is easy
+> when you never trip.
+>
+> Nobody else in this space publishes their false-trip rate. We publish the
+> one that makes us look bad.
 
 ---
 

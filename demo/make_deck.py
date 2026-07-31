@@ -195,7 +195,7 @@ def build() -> Presentation:
          "Team ABCD  ·  AI Safety and Observability",
          DISPLAY, 14, MUTED, line=1.5)
     text(s, L + Inches(8.6), Inches(5.8), Inches(3.3), Inches(0.9),
-         "Working, measured on two laptops\n137 tests  ·  runs fully offline",
+         "Measured on 148 real agent traces\n165 tests  ·  runs fully offline",
          MONO, 12, FAINT, line=1.5)
 
     # 2 ------------------------------------------------------------ problem
@@ -502,10 +502,33 @@ def build() -> Presentation:
          DISPLAY, 21, INK, bold=True)
 
     # 15 ---------------------------------------------------------------- ask
+    # --------------------------------------------------- the real-trace result
+    s, y = slide(prs, "Where it fails", "148 real agent traces. We got worse.")
+    rows = [
+        ["Detector", "Recall", "False-trip"],
+        [("Plateau", INK, True), ("0.63", INK, True), ("0.54", SIGNAL, True)],
+        ["exact-args debounce", "0.58", "0.23"],
+        ["lexical (agent-loop-detector)", "0.07", "0.00"],
+        ["step-cap (LangGraph 25)", "0.12", "0.00"],
+        ["exact-match (OpenHands)", "0.00", "0.00"],
+    ]
+    table(s, L, y + Inches(0.05), CW, rows, [0.5, 0.25, 0.25])
+    tag(s, L, y + Inches(2.78), "MEASURED")
+    note(s, y + Inches(3.02),
+         "TRAIL (PatronusAI, arXiv:2505.08638) — 148 expert-annotated traces from GAIA and "
+         "SWE-Bench. On traces we wrote ourselves we hit recall 1.00 with zero false trips. On "
+         "real ones we false-trip more than half the healthy runs, and NOTHING tested reaches "
+         "1.00/0.00. Our own evaluation was optimistic about us. We only know that because we "
+         "went and got real traces.")
+    rule(s, L, y + Inches(3.85), CW, INK, Pt(1))
+    text(s, L, y + Inches(4.05), CW, Inches(0.6),
+         "Highest recall of anything that fires. A 0.00 false-trip rate is easy "
+         "when you never trip.", DISPLAY, 19, INK, bold=True)
+
     s, y = slide(prs, "Where it stands", "Built, measured, and running today.")
     for i, (label, value, sub) in enumerate([
-        ("Tests passing", "137", "including the live demo stack"),
-        ("Machines proven on", "2", "Fedora + macOS, over LAN"),
+        ("Tests passing", "165", "including the live demo stack"),
+        ("Real traces evaluated", "148", "TRAIL, expert-annotated"),
         ("External services", "0", "no cloud, no API key"),
         ("Integration surface", "2 hooks", "around any tool call"),
     ]):
