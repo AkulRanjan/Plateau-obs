@@ -575,3 +575,37 @@ def test_dashboard_shows_the_evidence_panels(live_collector):
     for marker in ("CALIBRATING", "HALF_OPEN", "BREAKER OPEN", "ENCODER CALLS",
                    "action sim", "obs novelty", "digest"):
         assert marker in body, f"dashboard lost its {marker!r} panel"
+
+
+RUN_UNGUARDED = ROOT / "demo" / "run_unguarded.sh"
+
+
+def test_unguarded_runner_is_executable_and_valid():
+    import shutil
+    import subprocess
+
+    assert RUN_UNGUARDED.exists()
+    assert os.access(RUN_UNGUARDED, os.X_OK)
+    bash = shutil.which("bash")
+    if bash:
+        assert subprocess.run([bash, "-n", str(RUN_UNGUARDED)]).returncode == 0
+
+
+def test_unguarded_runner_stays_bash_3_2_compatible():
+    """macOS still ships bash 3.2. A bash 4 construct fails on the one machine
+    this script exists for, and nowhere on the machine it was written on."""
+    code = "\n".join(
+        line for line in RUN_UNGUARDED.read_text(encoding="utf-8").splitlines()
+        if not line.lstrip().startswith("#")
+    )
+    for bash4 in ("declare -A", "mapfile", "readarray", "${!", ",,}", "^^}", "&>>"):
+        assert bash4 not in code, f"{bash4!r} needs bash 4; macOS has 3.2"
+
+
+def test_unguarded_runner_never_imports_plateau():
+    """The second laptop is a five-minute setup, and that is part of the point."""
+    body = RUN_UNGUARDED.read_text(encoding="utf-8")
+    code = "\n".join(l for l in body.splitlines() if not l.lstrip().startswith("#"))
+    assert "--mode unguarded" in code
+    assert "plateau.encoder" not in code and "sentence_transformers" not in code
+    assert "torch" not in code

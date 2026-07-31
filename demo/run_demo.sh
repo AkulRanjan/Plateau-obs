@@ -127,6 +127,10 @@ kill -0 "$COLLECTOR_PID" 2>/dev/null || die "the collector exited during startup
 
 say "collector   $(cat "$URL_FILE") (pid $COLLECTOR_PID)"
 say "dashboard   $(cat "$URL_FILE")/   <- open and record this"
+# Read this line out to the other laptop. It carries the address this machine
+# is actually reachable on, which beats anyone retyping an IP from memory or
+# trusting mDNS to pick the right interface.
+say "other laptop:  ./run_unguarded.sh $(cat "$URL_FILE")"
 
 if [[ "$COLLECTOR_ONLY" == "yes" ]]; then
   say "collector-only: leave this running and start the agents elsewhere. Ctrl-C to stop."
