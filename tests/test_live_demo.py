@@ -324,6 +324,59 @@ def _state(url: str) -> dict:
         return json.loads(response.read())
 
 
+def test_refused_means_the_tool_never_ran(tmp_path, monkeypatch):
+    """`allowed` and `executed` are different questions, and the demo shows both.
+
+    A HALF_OPEN probe is allowed through, runs, and is judged on the observation
+    it produced — so it is recorded allowed=False, executed=True. Measured on a
+    live 25-turn run: 13 turns carried allowed=False but only 8 were vetoed. The
+    pane called all 13 "REFUSED" and the dashboard's token counter skipped the
+    5 that had really run, so the screen disagreed with the run's own summary.
+    """
+    pytest.importorskip("sentence_transformers")
+    try:
+        result = _run("plateau", STALL)
+    except Exception:  # noqa: BLE001
+        pytest.skip("encoder weights unavailable")
+
+    assert result.tripped
+    vetoed = [t for t in result.turns if not t.executed]
+    judged = [t for t in result.turns if t.executed and not t.allowed]
+
+    assert len(vetoed) == result.refused, (
+        "`turns refused` in the summary must equal the turns that never ran"
+    )
+    assert all(t.observation == "(not executed)" for t in vetoed)
+    assert judged, "expected at least the trip turn to have run and then been judged"
+    assert all(t.observation != "(not executed)" for t in judged)
+    executed_rows = [t for t in result.turns if t.executed]
+    assert len(executed_rows) == result.summary["turns executed"]
+
+
+def test_an_explicit_no_collector_is_not_overridden_by_the_published_file(tmp_path):
+    """`collector=None` means none — not "go and read collector.url".
+
+    Conflating "argument omitted" with "explicitly none" meant a stale published
+    address killed runs that had asked for no collector at all.
+    """
+    from demo import live_agent
+
+    stale = tmp_path / "collector.url"
+    stale.write_text("http://192.0.2.1:9999\n", encoding="utf-8")  # TEST-NET-1, unroutable
+    original = live_agent.COLLECTOR_URL_FILE
+    live_agent.COLLECTOR_URL_FILE = stale
+    try:
+        assert live_agent.resolve_collector(None)[0] is None
+        assert live_agent.resolve_collector("")[0] is None
+        # Omitted still means "use what the collector published".
+        assert live_agent.resolve_collector()[0] == "http://192.0.2.1:9999"
+        assert live_agent.resolve_collector(live_agent.AUTO)[0] == "http://192.0.2.1:9999"
+        # An explicit address always wins, and is normalised.
+        assert live_agent.resolve_collector("http://x:1/")[0] == "http://x:1"
+    finally:
+        live_agent.COLLECTOR_URL_FILE = original
+
+
 def test_collector_records_and_resets(live_collector):
     assert _post(live_collector, "/turn", {"mode": "unguarded", "n": 1}) == 200
     assert _post(live_collector, "/turn", {"mode": "unguarded", "n": 2}) == 200

@@ -170,14 +170,17 @@ function render(mode, d){
   const feed = document.getElementById('f-'+mode);
   const turns = d.turns || [];
   if(!turns.length) return;
-  const executed = turns.filter(t => t.allowed !== false).length;
+  // Count what RAN, not what was allowed: a HALF_OPEN probe runs and is then
+  // judged, so it arrives with allowed=false and executed=true. Filtering on
+  // allowed understated the guarded pane by every probe the breaker let through.
+  const executed = turns.filter(t => t.executed !== false).length;
   document.getElementById('c-'+mode).innerHTML =
     (executed*1850).toLocaleString() + ' <span style="font-size:11px;color:var(--faint)">tok</span>';
   const pill = document.getElementById('s-'+mode);
   const last = turns[turns.length-1];
   pill.textContent = d.done ? 'finished · ' + (d.summary['ended because']||'') : (last.state||'running');
   feed.innerHTML = turns.map(t => {
-    if(t.allowed === false){
+    if(t.executed === false){
       return `<div class="t"><span class="n">${t.n}</span><span>
         <span class="refused">REFUSED ${esc(t.action)}</span>
         <div class="msg">${esc(t.reason)}</div>
@@ -185,8 +188,12 @@ function render(mode, d){
     }
     const dials = (t.action_sim!=null)
       ? `<span class="dials"> sim ${t.action_sim.toFixed(2)} · nov ${t.obs_novelty.toFixed(2)} · ${t.quadrant||''}</span>` : '';
+    // Ran, then judged stagnant: the trip turn itself and every HALF_OPEN probe.
+    const verdict = (t.allowed === false && t.reason)
+      ? `<div class="msg">breaker: ${esc(t.reason)}</div>
+         ${t.message ? `<div class="msg">${esc(t.message)}</div>` : ''}` : '';
     return `<div class="t"><span class="n">${t.n}</span><span>${esc(t.action)}${dials}
-      <div class="obs">→ ${esc((t.observation||'').split('\\n')[0].slice(0,110))}</div></span></div>`;
+      <div class="obs">→ ${esc((t.observation||'').split('\\n')[0].slice(0,110))}</div>${verdict}</span></div>`;
   }).join('');
   feed.scrollTop = feed.scrollHeight;
   if(d.done && d.summary){

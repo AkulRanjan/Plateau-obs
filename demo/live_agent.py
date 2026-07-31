@@ -52,15 +52,23 @@ from demo.live_world import (  # noqa: E402
 #: agent on the collector's own machine needs no address at all.
 COLLECTOR_URL_FILE = ROOT / "demo" / "collector.url"
 
+#: "--collector was not given, so go and look for a published address."
+#:
+#: Distinct from None, which means "deliberately no collector". Conflating the
+#: two meant an explicit `collector=None` still picked up whatever address the
+#: last collector boot published — so four tests that asked for no collector
+#: died in preflight against a stale wifi IP instead of running offline.
+AUTO = "auto"
 
-def resolve_collector(explicit: str | None) -> tuple[str | None, str]:
+
+def resolve_collector(explicit: str | None = AUTO) -> tuple[str | None, str]:
     """Work out where to post, and say where the answer came from.
 
     Returns (url, provenance). `url` is None when no collector is configured,
     which is a supported mode: the agent still prints a full local pane.
     """
-    if explicit:
-        return explicit.rstrip("/"), "--collector"
+    if explicit is not AUTO:
+        return (explicit.rstrip("/"), "--collector") if explicit else (None, "explicitly disabled")
     if COLLECTOR_URL_FILE.exists():
         published = COLLECTOR_URL_FILE.read_text(encoding="utf-8").strip()
         if published:
@@ -121,6 +129,9 @@ SYSTEM_PROMPT = (
 #: Hard stop for the unguarded run, so a stuck agent still ends the video.
 DEFAULT_MAX_TURNS = 25
 
+#: The demo model. ollama is the active path; --model-kind is what switches it.
+DEFAULT_MODEL_NAME = "llama3.1:8b"
+
 #: Illustrative only, and labelled as such wherever it is shown.
 TOKENS_PER_TURN = 1850
 
@@ -177,6 +188,15 @@ class Turn:
     action: str
     observation: str
     allowed: bool = True
+    #: Whether the tool actually ran. NOT the same as `allowed`.
+    #:
+    #: A HALF_OPEN probe is allowed through, executes, and is then judged on its
+    #: observation — so it lands here with allowed=False and executed=True. Only
+    #: a pre-execution veto has executed=False. Measured on a live run: 13 turns
+    #: carried allowed=False but only 8 were vetoed; the pane and the dashboard
+    #: both labelled all 13 "REFUSED", contradicting the run's own summary and
+    #: understating the guarded token count by 5 turns.
+    executed: bool = True
     state: str = "CLOSED"
     action_sim: float | None = None
     obs_novelty: float | None = None
@@ -244,7 +264,10 @@ class Reporter:
 
         colour = self.COLOR.get(t.state, "")
         head = f"  {t.n:>3}  "
-        if not t.allowed:
+        # REFUSED means the tool never ran. A turn the breaker judged stagnant
+        # *after* running it (the trip turn itself, and every HALF_OPEN probe)
+        # is shown as the executed turn it was, with the verdict underneath.
+        if not t.executed:
             print(
                 f"{head}{colour}REFUSED{self.RESET}  {t.action}\n"
                 f"       {colour}{t.reason}{self.RESET}"
@@ -261,6 +284,10 @@ class Reporter:
             obs = t.observation.replace("\n", " ")[:72]
             print(f"{head}{t.action}{dials}")
             print(f"       {self.DIM}-> {obs}{self.RESET}")
+            if not t.allowed and t.reason:
+                print(f"       {colour}breaker: {t.reason}{self.RESET}")
+                if t.message:
+                    print(f"       {self.DIM}{t.message}{self.RESET}")
 
         self._post(t)
 
@@ -326,11 +353,11 @@ def build_guard():
 
 def run(
     mode: str,
-    collector: str | None,
-    model_kind: str,
-    model_name: str,
-    max_turns: int,
-    delay: float,
+    collector: str | None = AUTO,
+    model_kind: str = "ollama",
+    model_name: str = DEFAULT_MODEL_NAME,
+    max_turns: int = DEFAULT_MAX_TURNS,
+    delay: float = 0.0,
     model=None,
     quiet: bool = False,
 ) -> RunResult:
@@ -443,7 +470,7 @@ def run(
                 turn = Turn(
                     n=n, mode=mode, tool=proposal.tool, args=proposal.args,
                     action=action, observation="(not executed)", allowed=False,
-                    state=state, reason=reason, message=message,
+                    executed=False, state=state, reason=reason, message=message,
                     elapsed_s=round(time.time() - t0, 2),
                     tokens_spent=turns_executed * TOKENS_PER_TURN,
                 )
@@ -516,9 +543,14 @@ def run(
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--mode", choices=["plateau", "unguarded"], required=True)
-    p.add_argument("--collector", default=None, help="e.g. http://192.168.1.20:8080")
+    p.add_argument(
+        "--collector",
+        default=AUTO,
+        help="e.g. http://192.168.1.20:8080. Omitted: use the address the "
+        "collector published in collector.url. Pass '' to record locally only.",
+    )
     p.add_argument("--model-kind", default="ollama", choices=["ollama", "bedrock"])
-    p.add_argument("--model", default="llama3.1:8b")
+    p.add_argument("--model", default=DEFAULT_MODEL_NAME)
     p.add_argument("--max-turns", type=int, default=DEFAULT_MAX_TURNS)
     p.add_argument("--delay", type=float, default=0.0, help="pause between turns, for pacing the video")
     a = p.parse_args()
