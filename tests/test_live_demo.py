@@ -513,3 +513,65 @@ def test_run_demo_defaults_to_ollama_and_needs_no_aws():
     )
     for aws_ism in ("aws ", "AWS_PROFILE", "AWS_REGION", "AWS_DEFAULT", "boto3", "sts "):
         assert aws_ism not in code, f"the runner must not require {aws_ism!r}"
+
+
+# --------------------------------------------------------------------------
+# what the dashboard needs in the payload
+# --------------------------------------------------------------------------
+
+
+def test_turns_carry_the_calibration_snapshot():
+    """The dashboard draws the ceiling and the warmup meter from these.
+
+    Before they existed the only way to see the learned ceiling was to parse it
+    back out of a formatted reason string, which is not something a UI should
+    ever do.
+    """
+    pytest.importorskip("sentence_transformers")
+    try:
+        result = _run("plateau", STALL)
+    except Exception:  # noqa: BLE001
+        pytest.skip("encoder weights unavailable")
+
+    from plateau.calibrator import MIN_SAMPLES, NOVELTY_FLOOR
+
+    judged = [t for t in result.turns if t.calibrated_n is not None]
+    assert judged, "no turn carried a calibration snapshot"
+    for turn in judged:
+        assert turn.min_samples == MIN_SAMPLES
+        assert turn.novelty_floor == NOVELTY_FLOOR
+        assert 0.0 <= turn.sim_ceiling <= 1.0
+
+    # It only ever grows, and it reaches the arming threshold.
+    counts = [t.calibrated_n for t in judged]
+    assert counts == sorted(counts), "calibrated_n went backwards"
+    assert max(counts) >= MIN_SAMPLES
+
+
+def test_unguarded_turns_carry_no_calibration_snapshot():
+    """The unguarded agent has no calibrator, and must not imply it has one."""
+    result = _run("unguarded", STALL)
+    assert all(t.calibrated_n is None and t.sim_ceiling is None for t in result.turns)
+
+
+def test_dashboard_reads_executed_not_allowed_for_cost(live_collector):
+    """Guards the bug that understated the guarded pane's token count.
+
+    A HALF_OPEN probe runs and is then judged, so counting `allowed` skips real
+    work that really happened.
+    """
+    with urllib.request.urlopen(live_collector + "/", timeout=5) as response:
+        body = response.read().decode()
+    assert "t.executed !== false" in body
+    assert "t.allowed !== false" not in body, (
+        "cost must be counted from what ran, not from what was allowed"
+    )
+
+
+def test_dashboard_shows_the_evidence_panels(live_collector):
+    """The panels that make the trip explainable rather than assertive."""
+    with urllib.request.urlopen(live_collector + "/", timeout=5) as response:
+        body = response.read().decode()
+    for marker in ("CALIBRATING", "HALF_OPEN", "BREAKER OPEN", "ENCODER CALLS",
+                   "action sim", "obs novelty", "digest"):
+        assert marker in body, f"dashboard lost its {marker!r} panel"

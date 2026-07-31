@@ -220,6 +220,16 @@ class Turn:
     elapsed_s: float = 0.0
     tokens_spent: int = 0
     phase: str = "agent"
+    #: What the calibrator had learned at the moment this turn was judged.
+    #:
+    #: The dashboard draws sim_ceiling as a reference line under the similarity
+    #: dial, and shows calibrated_n/min_samples as a warmup meter. Both were
+    #: previously reachable only by parsing them back out of the reason string.
+    #: Read-only snapshots — nothing here feeds a decision.
+    sim_ceiling: float | None = None
+    calibrated_n: int | None = None
+    min_samples: int | None = None
+    novelty_floor: float | None = None
 
     def as_event(self) -> dict:
         return asdict(self)
@@ -252,8 +262,15 @@ class Reporter:
         self._client = httpx.Client(timeout=3.0) if self.collector else None
         self._posted_ok = 0
         self._post_failures = 0
+        self.model_name = ""
+        self.digest = ""
 
     def header(self, model_name: str, digest: str) -> None:
+        # Recorded before the quiet check: the dashboard shows both machines'
+        # model and digest side by side, which is how a viewer can see whether
+        # the two runs are comparable at all.
+        self.model_name = model_name
+        self.digest = digest
         if self.quiet:
             return
         title = "WITH PLATEAU" if self.mode == "plateau" else "UNGUARDED"
@@ -311,7 +328,12 @@ class Reporter:
         try:
             self._client.post(
                 f"{self.collector}/turn",
-                json={"run_id": self.run_id, **t.as_event()},
+                json={
+                    "run_id": self.run_id,
+                    "model": self.model_name,
+                    "digest": self.digest,
+                    **t.as_event(),
+                },
             )
             self._posted_ok += 1
         except Exception:  # noqa: BLE001 - the pane must survive a dead collector
@@ -363,6 +385,25 @@ def build_guard():
         encoder=encoder, classify=detector.classify, calibrator=calibrator
     )
     return breaker, encoder
+
+
+def calibration_snapshot(breaker) -> dict:
+    """What the calibrator has learned, as of now. Read-only, decides nothing.
+
+    The dashboard needs the ceiling to draw a reference line under the
+    similarity dial, and n/min_samples to show a warmup meter while the breaker
+    is still CALIBRATING. Both were previously recoverable only by parsing them
+    back out of a formatted reason string.
+    """
+    if breaker is None:
+        return {}
+    calibrator = breaker.calibrator
+    return {
+        "sim_ceiling": round(calibrator.sim_ceiling, 4),
+        "calibrated_n": calibrator.n,
+        "min_samples": calibrator.min_samples,
+        "novelty_floor": calibrator.novelty_floor,
+    }
 
 
 def run(
@@ -441,6 +482,7 @@ def run(
             action_sim=sim, obs_novelty=nov, quadrant=quadrant, phase="survey",
             elapsed_s=round(time.time() - t0, 2),
             tokens_spent=turns_executed * TOKENS_PER_TURN,
+            **calibration_snapshot(breaker),
         ))
         messages.append({"role": "assistant", "content": action})
         messages.append({"role": "user", "content": call.observation})
@@ -487,6 +529,7 @@ def run(
                     executed=False, state=state, reason=reason, message=message,
                     elapsed_s=round(time.time() - t0, 2),
                     tokens_spent=turns_executed * TOKENS_PER_TURN,
+                    **calibration_snapshot(breaker),
                 )
                 reporter.turn(turn)
                 messages.append({"role": "assistant", "content": f"[blocked] {reason}"})
@@ -520,6 +563,7 @@ def run(
             reason=reason, message=message,
             elapsed_s=round(time.time() - t0, 2),
             tokens_spent=turns_executed * TOKENS_PER_TURN,
+            **calibration_snapshot(breaker),
         )
         reporter.turn(turn)
 
