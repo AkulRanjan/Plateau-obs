@@ -401,7 +401,8 @@ def test_collector_serves_the_dashboard(live_collector):
     with urllib.request.urlopen(live_collector + "/", timeout=5) as response:
         body = response.read().decode()
     assert response.status == 200
-    assert "UNGUARDED" in body and "WITH PLATEAU" in body
+    # Case-insensitive: the page sets its capitals in CSS, not in the markup.
+    assert "unguarded" in body.lower() and "with plateau" in body.lower()
 
 
 def test_dashboard_states_that_token_figures_are_illustrative(live_collector):
@@ -572,9 +573,11 @@ def test_dashboard_shows_the_evidence_panels(live_collector):
     """The panels that make the trip explainable rather than assertive."""
     with urllib.request.urlopen(live_collector + "/", timeout=5) as response:
         body = response.read().decode()
-    for marker in ("CALIBRATING", "HALF_OPEN", "BREAKER OPEN", "ENCODER CALLS",
-                   "action sim", "obs novelty", "digest"):
-        assert marker in body, f"dashboard lost its {marker!r} panel"
+    low = body.lower()
+    for marker in ("calibrating", "half_open", "breaker open", "encoder calls",
+                   "action sim", "obs novelty", "digest",
+                   "spent stalled"):  # the honest comparison; tokens dilute it
+        assert marker in low, f"dashboard lost its {marker!r} panel"
 
 
 RUN_UNGUARDED = ROOT / "demo" / "run_unguarded.sh"

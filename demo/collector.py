@@ -114,331 +114,421 @@ class Handler(BaseHTTPRequestHandler):
 
 DASHBOARD = """<!doctype html>
 <meta charset="utf-8">
-<title>Plateau — two agents, one task</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plateau — recorder</title>
 <style>
-  :root{--bg:#0a1417;--panel:#0f2228;--sunk:#0b1b20;--line:#1c3b44;--ink:#e6f1f3;
-        --muted:#88a6af;--faint:#7b949b;--cyan:#25e0c8;--red:#ff5a47;--amber:#f5b23d;
-        --violet:#9d7cf4;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+  /* A two-pen strip-chart recorder.
+     Plateau's whole output is two traces against a printed threshold, so the
+     page is built as the instrument that would draw them: ivory chart stock,
+     engraved legend plates, annunciator lamps, ink. */
+  :root{
+    --paper:#e6e3da;        /* chart stock */
+    --paper-2:#dcd8cc;      /* inset wells */
+    --rule:#bdb7a6;         /* printed grid */
+    --ink:#1c1b18;          /* plotter ink */
+    --ink-soft:#5d594f;
+    --ink-faint:#8a8477;
+    --pen-a:#1b4b8f;        /* pen 1 — action similarity */
+    --pen-b:#0e6f52;        /* pen 2 — observation novelty */
+    --signal:#b3221b;       /* threshold, refusals, alarm */
+    --amber:#9a6a0c;        /* learned ceiling */
+    --display:"Helvetica Neue Condensed","HelveticaNeue-CondensedBold","Arial Narrow",
+              "Nimbus Sans Narrow","DejaVu Sans Condensed",system-ui,sans-serif;
+    --data:ui-monospace,"SF Mono",Menlo,"Liberation Mono","DejaVu Sans Mono",monospace;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
-       font:14px/1.45 ui-sans-serif,system-ui,sans-serif;padding:18px 22px 26px}
-  h1{font-size:19px;letter-spacing:.2em;margin:0 0 2px}
-  .sub{color:var(--muted);font-size:12.5px}
-  .bar{display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;
-       margin:12px 0 14px;padding:9px 12px;background:var(--sunk);
-       border:1px solid var(--line);border-radius:10px;font:11.5px/1.4 var(--mono)}
-  .bar b{color:var(--muted);font-weight:400;letter-spacing:.08em}
-  .bar span{color:var(--ink)}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .grid.solo{grid-template-columns:1fr}
-  .grid.solo .pane.empty{display:none}
-  .pane{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-        padding:14px;display:flex;flex-direction:column;min-height:72vh}
-  .head{display:flex;justify-content:space-between;align-items:baseline;
-        font:600 12px/1 var(--mono);letter-spacing:.14em;margin-bottom:9px}
-  .pill{font:11px var(--mono);padding:3px 9px;border-radius:99px;border:1px solid}
-  .machine{font:10.5px var(--mono);color:var(--faint);margin:-4px 0 9px;
-           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  /* state machine strip */
-  .fsm{display:flex;gap:4px;margin-bottom:10px}
-  .fsm div{flex:1;text-align:center;font:10px/1 var(--mono);letter-spacing:.06em;
-           padding:6px 2px;border-radius:5px;border:1px solid var(--line);
-           color:var(--faint);background:var(--sunk)}
-  .fsm div.on{color:var(--bg);font-weight:700}
-  .fsm div.on.calm{background:var(--cyan);border-color:var(--cyan)}
-  .fsm div.on.hot{background:var(--red);border-color:var(--red)}
-  .fsm div.on.warm{background:var(--amber);border-color:var(--amber)}
-  /* counters */
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
-  .stat{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:7px 8px}
-  .stat u{display:block;text-decoration:none;color:var(--faint);
-          font:9.5px/1.3 var(--mono);letter-spacing:.09em}
-  .stat b{display:block;font:600 19px/1.25 var(--mono);font-variant-numeric:tabular-nums}
-  .stat small{display:block;color:var(--faint);font:10px/1.35 var(--mono)}
-  /* dials */
-  .dialwrap{background:var(--sunk);border:1px solid var(--line);border-radius:8px;
-            padding:8px 9px 4px;margin-bottom:10px}
-  .dialrow{display:flex;align-items:center;gap:8px;margin-bottom:3px}
-  .dialrow em{font:9.5px var(--mono);color:var(--faint);font-style:normal;
-              letter-spacing:.08em;width:74px;flex:none}
-  .dialrow svg{flex:1;height:34px;display:block}
-  .warm{font:10px var(--mono);color:var(--faint);margin-top:2px}
-  .warmbar{height:3px;background:#16323a;border-radius:2px;overflow:hidden;margin-top:3px}
-  .warmbar i{display:block;height:100%;background:var(--cyan)}
-  /* quadrants */
-  .quads{display:flex;gap:5px;margin-bottom:10px;font:10px var(--mono)}
-  .quads span{flex:1;text-align:center;padding:4px 2px;border-radius:5px;
-              background:var(--sunk);border:1px solid var(--line);color:var(--faint)}
-  .quads span b{display:block;font-size:13px;color:var(--ink);
-                font-variant-numeric:tabular-nums}
-  /* feed */
-  /* Bounded, so a long run cannot push the trip card off the bottom of a
-     screen that is being recorded. The feed scrolls itself instead. */
-  .feed{flex:1;overflow-y:auto;min-height:110px;max-height:34vh;
-        font:11.5px/1.5 var(--mono)}
-  .t{display:grid;grid-template-columns:26px 1fr;gap:8px;padding:4px 0;
-     border-bottom:1px solid #16323a}
-  .t.survey{opacity:.72}
-  .n{color:var(--faint)}
-  .obs{color:var(--muted)}
-  .dials{color:var(--faint);font-size:10.5px}
-  .q-loop,.q-thrash{color:var(--red)}
+  html,body{background:var(--paper)}
+  body{margin:0;color:var(--ink);font:13px/1.5 var(--data);
+       padding:20px 26px 30px;
+       background-image:linear-gradient(var(--rule) .5px,transparent .5px);
+       background-size:100% 26px;background-position:0 -1px}
+
+  /* masthead ------------------------------------------------------------ */
+  .mast{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+        border-bottom:1.5px solid var(--ink);padding-bottom:7px;margin-bottom:2px}
+  .mast h1{margin:0;font:600 27px/.9 var(--display);letter-spacing:.34em;
+           text-transform:uppercase}
+  .mast .strap{font:11px/1.3 var(--display);letter-spacing:.13em;
+               text-transform:uppercase;color:var(--ink-soft);margin-top:5px}
+  .mast .meta{text-align:right;font:10.5px/1.6 var(--data);color:var(--ink-soft);
+              white-space:nowrap}
+  .mast .meta b{color:var(--ink);font-weight:400}
+  .hair{border-bottom:.5px solid var(--ink);margin-bottom:16px}
+
+  /* legend plate — the engraved label used everywhere a section starts --- */
+  .plate{font:600 10px/1 var(--display);letter-spacing:.2em;text-transform:uppercase;
+         color:var(--ink-soft)}
+
+  /* the recorder -------------------------------------------------------- */
+  .recorder{border:1px solid var(--ink);background:var(--paper-2);margin-bottom:16px}
+  .rec-head{display:flex;justify-content:space-between;align-items:baseline;
+            gap:14px;padding:7px 12px;border-bottom:.5px solid var(--rule);flex-wrap:wrap}
+  .pens{display:flex;gap:16px;font:10.5px/1 var(--data);color:var(--ink-soft)}
+  .pens i{display:inline-block;width:15px;height:0;border-top-width:2px;
+          border-top-style:solid;vertical-align:middle;margin-right:5px}
+  .chart{display:block;width:100%;height:168px}
+  .rec-foot{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+            padding:6px 12px;border-top:.5px solid var(--rule);
+            font:10.5px/1.5 var(--data);color:var(--ink-soft)}
+  .rec-foot b{color:var(--ink);font-weight:400}
+
+  /* two channels -------------------------------------------------------- */
+  .channels{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}
+  .channels.solo{grid-template-columns:1fr}
+  .channels.solo .ch.idle{display:none}
+  /* Fixed height, not min-height: both channels stay the same size and the log
+     roll takes whatever is left, so the page never grows past one screen and
+     neither channel ends in dead space. */
+  .ch{border:1px solid var(--ink);background:var(--paper-2);
+      display:flex;flex-direction:column;height:64vh;min-height:420px}
+  .ch-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+           padding:8px 12px 7px;border-bottom:1px solid var(--ink)}
+  .ch-head h2{margin:0;font:600 14px/1 var(--display);letter-spacing:.19em;
+              text-transform:uppercase}
+  .ch-head .sub{font:10px/1.4 var(--data);color:var(--ink-faint);margin-top:4px}
+  .status{font:10px/1 var(--display);letter-spacing:.13em;text-transform:uppercase;
+          padding:4px 8px;border:.5px solid var(--ink-soft);color:var(--ink-soft);
+          white-space:nowrap}
+
+  /* annunciator lamps --------------------------------------------------- */
+  .lamps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+         background:var(--rule);border-bottom:1px solid var(--ink)}
+  .lamps div{background:var(--paper-2);text-align:center;padding:7px 2px;
+             font:600 9px/1.2 var(--display);letter-spacing:.11em;
+             text-transform:uppercase;color:var(--ink-faint)}
+  .lamps div.lit{background:var(--ink);color:var(--paper)}
+  .lamps div.lit.alarm{background:var(--signal);color:#fff}
+  .lamps div.lit.hold{background:var(--amber);color:#fff}
+
+  /* counter windows ----------------------------------------------------- */
+  .counts{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule)}
+  .counts.four{grid-template-columns:repeat(4,1fr)}
+  .cw{background:var(--paper);padding:8px 10px 9px}
+  .cw u{display:block;text-decoration:none;font:600 8.5px/1.3 var(--display);
+        letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  .cw b{display:block;font:400 25px/1.15 var(--data);font-variant-numeric:tabular-nums;
+        letter-spacing:-.02em;margin-top:2px}
+  .cw b.flag{color:var(--signal)}
+  .cw small{display:block;font:10px/1.35 var(--data);color:var(--ink-faint)}
+
+  /* the alarm slip ------------------------------------------------------ */
+  .slip{display:none;margin:12px;border-left:3px solid var(--signal);
+        background:var(--paper);padding:9px 12px}
+  .slip.on{display:block}
+  .slip h3{margin:0 0 5px;font:600 10px/1 var(--display);letter-spacing:.19em;
+           text-transform:uppercase;color:var(--signal)}
+  .slip p{margin:0;font:11px/1.6 var(--data);white-space:pre-wrap}
+  .slip p+p{margin-top:6px;color:var(--amber)}
+
+  /* the log roll -------------------------------------------------------- */
+  .roll{flex:1;overflow-y:auto;min-height:0;padding:2px 12px 10px}
+  .r{display:grid;grid-template-columns:22px 1fr;gap:9px;padding:5px 0;
+     border-bottom:.5px solid var(--rule);font:11px/1.5 var(--data)}
+  .r.pre{color:var(--ink-faint)}
+  .r .idx{color:var(--ink-faint);text-align:right;font-variant-numeric:tabular-nums}
+  .r .obs{color:var(--ink-soft)}
+  .r .note{color:var(--signal);margin-top:2px}
+  .r.cut .act{color:var(--signal)}
+  .dial{color:var(--ink-faint)}
+  .q-loop,.q-thrash{color:var(--signal)}
   .q-grind{color:var(--amber)}
-  .q-explore{color:var(--cyan)}
-  .refused{color:var(--red)}
-  .msg{color:var(--amber);font-size:10.5px;white-space:pre-wrap;margin-top:3px}
-  .foot{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);
-        color:var(--muted);font-size:11.5px}
-  .waiting{color:var(--faint);padding:26px 0;text-align:center}
-  /* trip card */
-  .trip{margin:0 0 10px;border:1px solid var(--red);border-left-width:4px;
-        border-radius:10px;background:#1a1013;padding:11px 13px;display:none}
-  .trip.on{display:block}
-  .trip h2{margin:0 0 6px;font:600 12px/1 var(--mono);letter-spacing:.14em;color:var(--red)}
-  .trip .why{font:11.5px/1.55 var(--mono);color:var(--ink);white-space:pre-wrap}
-  .trip .esc{margin-top:7px;font:11.5px/1.5 var(--mono);color:var(--amber)}
-  .note{color:var(--faint);font-size:11.5px;margin-top:14px;line-height:1.5}
+  .q-explore{color:var(--pen-b)}
+  .ch-foot{border-top:1px solid var(--ink);padding:7px 12px;
+           font:10.5px/1.5 var(--data);color:var(--ink-soft)}
+  .idlemsg{padding:30px 12px;text-align:center;color:var(--ink-faint);
+           font:11px/1.6 var(--data)}
+  .fine{margin-top:16px;border-top:.5px solid var(--ink);padding-top:8px;
+        font:10.5px/1.65 var(--data);color:var(--ink-soft);max-width:112ch}
+
+  @media (max-width:900px){
+    .channels{grid-template-columns:1fr}
+    .ch{height:auto;min-height:0}
+    .roll{max-height:48vh}
+    .counts.four{grid-template-columns:repeat(2,1fr)}
+    .mast{flex-direction:column;align-items:flex-start}
+    .mast .meta{text-align:left}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .lamps div.lit.alarm{animation:lamp 1.9s ease-in-out infinite}
+    @keyframes lamp{0%,100%{opacity:1}50%{opacity:.72}}
+  }
 </style>
-<h1>PLATEAU</h1>
-<div class="sub">Two agents. Same task, same tools. One has a circuit breaker.</div>
 
-<div class="bar">
-  <span><b>TASK</b> <span id="b-task">—</span></span>
-  <span><b>UNGUARDED</b> <span id="b-u">waiting</span></span>
-  <span><b>GUARDED</b> <span id="b-p">waiting</span></span>
-  <span><b>FLOOR</b> <span id="b-floor">—</span></span>
-</div>
-
-<div class="grid" id="grid">
-  <div class="pane empty" id="pane-unguarded">
-    <div class="head"><span style="color:var(--red)">UNGUARDED</span>
-      <span id="s-unguarded" class="pill" style="border-color:var(--red);color:var(--red)">waiting</span></div>
-    <div class="machine" id="m-unguarded">no agent connected</div>
-    <div class="stats" id="k-unguarded"></div>
-    <div class="feed" id="f-unguarded"><div class="waiting">waiting for the agent…</div></div>
-    <div class="foot" id="x-unguarded">Every call returns 200 OK. No dashboard has anything to alarm on.</div>
+<div class="mast">
+  <div>
+    <h1>Plateau</h1>
+    <div class="strap">Circuit breaker for agents that stop making progress</div>
   </div>
+  <div class="meta">
+    <div>task &nbsp;<b id="m-task">—</b></div>
+    <div>chart &nbsp;<b id="m-model">awaiting the guarded agent</b></div>
+  </div>
+</div>
+<div class="hair"></div>
 
-  <div class="pane empty" id="pane-plateau">
-    <div class="head"><span style="color:var(--cyan)">WITH PLATEAU</span>
-      <span id="s-plateau" class="pill" style="border-color:var(--cyan);color:var(--cyan)">waiting</span></div>
-    <div class="machine" id="m-plateau">no agent connected</div>
-    <div class="fsm" id="fsm">
-      <div data-s="CALIBRATING">CALIBRATING</div><div data-s="CLOSED">CLOSED</div>
-      <div data-s="OPEN">OPEN</div><div data-s="HALF_OPEN">HALF_OPEN</div>
+<div class="recorder">
+  <div class="rec-head">
+    <span class="plate">Recorder — with plateau</span>
+    <div class="pens">
+      <span><i style="border-color:var(--pen-a)"></i>action sim</span>
+      <span><i style="border-color:var(--pen-b)"></i>obs novelty</span>
+      <span><i style="border-color:var(--amber);border-top-style:dashed"></i>learned ceiling</span>
+      <span><i style="border-color:var(--signal);border-top-style:dashed"></i>novelty floor</span>
     </div>
-    <div class="stats" id="k-plateau"></div>
-    <div class="dialwrap" id="dials">
-      <div class="dialrow"><em>action sim</em><svg id="sv-sim" viewBox="0 0 300 34" preserveAspectRatio="none"></svg></div>
-      <div class="dialrow"><em>obs novelty</em><svg id="sv-nov" viewBox="0 0 300 34" preserveAspectRatio="none"></svg></div>
-      <div class="warm" id="warmtext"></div>
-      <div class="warmbar" id="warmbar"><i id="warmfill" style="width:0%"></i></div>
-    </div>
-    <div class="quads" id="quads"></div>
-    <div class="trip" id="trip">
-      <h2>BREAKER OPEN</h2>
-      <div class="why" id="trip-why"></div>
-      <div class="esc" id="trip-esc"></div>
-    </div>
-    <div class="feed" id="f-plateau"><div class="waiting">waiting for the agent…</div></div>
-    <div class="foot" id="x-plateau">Watching both halves of every turn.</div>
+  </div>
+  <svg class="chart" id="chart" preserveAspectRatio="none" viewBox="0 0 1000 168"></svg>
+  <div class="rec-foot">
+    <span id="rec-cal">Calibrating.</span>
+    <span id="rec-quads"></span>
   </div>
 </div>
 
-<div class="note">
-  Token figures are ILLUSTRATIVE: turns are measured, tokens are arithmetic over an
-  assumed 1,850/turn. Encoder calls are counted, not assumed. Plateau trips on
-  observation novelty; the loop's non-answer is a constant string, which is what
-  makes novelty collapse. The two agents run on different machines, so their
-  trajectories are not expected to match turn for turn — compare the digests above.
+<div class="channels" id="channels">
+  <section class="ch idle" id="ch-unguarded">
+    <div class="ch-head">
+      <div><h2>Unguarded</h2><div class="sub" id="u-sub">no agent connected</div></div>
+      <span class="status" id="u-status">standby</span>
+    </div>
+    <div class="counts" id="u-counts"></div>
+    <div class="roll" id="u-roll"><div class="idlemsg">Waiting for the unguarded agent.</div></div>
+    <div class="ch-foot" id="u-foot">Every call returns 200 OK. Nothing here is an error.</div>
+  </section>
+
+  <section class="ch idle" id="ch-plateau">
+    <div class="ch-head">
+      <div><h2>With Plateau</h2><div class="sub" id="p-sub">no agent connected</div></div>
+      <span class="status" id="p-status">standby</span>
+    </div>
+    <div class="lamps" id="lamps">
+      <div data-s="CALIBRATING">Calibrating</div><div data-s="CLOSED">Closed</div>
+      <div data-s="OPEN">Open</div><div data-s="HALF_OPEN">Half_Open</div>
+    </div>
+    <div class="counts four" id="p-counts"></div>
+    <div class="slip" id="slip">
+      <h3>Breaker open</h3>
+      <p id="slip-why"></p>
+      <p id="slip-esc"></p>
+    </div>
+    <div class="roll" id="p-roll"><div class="idlemsg">Waiting for the guarded agent.</div></div>
+    <div class="ch-foot" id="p-foot">Reading both halves of every turn.</div>
+  </section>
+</div>
+
+<div class="fine">
+  Turns and encoder calls are counted. Token figures are ILLUSTRATIVE — arithmetic over an
+  assumed 1,850 per turn, not measured. Novelty collapses because the loop's non-answer is a
+  constant string. The two agents run on different machines, so their trajectories are not
+  expected to match turn for turn; compare the digests before reading anything into a
+  difference.
 </div>
 
 <script>
 const esc = s => (s||"").replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const num = n => (n==null ? '—' : n.toLocaleString());
-const FLOOR_DEFAULT = 0.30;
 
-function statCard(label, value, sub){
-  return `<div class="stat"><u>${label}</u><b>${value}</b>${sub?`<small>${sub}</small>`:''}</div>`;
+/* Turns spent inside a stall: from the first run of three identical
+   observations to the end of what that agent executed. This is the honest
+   comparison — tokens dilute it, because a guarded agent spends its freed
+   turns doing real work rather than not spending them. */
+function stallSpan(turns){
+  const ran = turns.filter(t => t.executed !== false && t.observation);
+  for(let i=2;i<ran.length;i++){
+    if(ran[i].observation===ran[i-1].observation && ran[i-1].observation===ran[i-2].observation){
+      return {from: ran[i-2].n, spent: ran.length-(i-2)};
+    }
+  }
+  return {from:null, spent:0};
 }
 
-/* A sparkline over one dial, with reference lines drawn from the values the
-   agent posted rather than from constants duplicated here. */
-function spark(svg, series, refs, colour){
-  const W=300, H=34, n=series.length;
-  if(!n){ svg.innerHTML=''; return; }
-  const x = i => n<2 ? W/2 : (i/(n-1))*W;
-  const y = v => H - 2 - Math.max(0, Math.min(1, v))*(H-4);
-  let out='';
-  for(const r of refs){
-    if(r.v==null) continue;
-    out += `<line x1="0" y1="${y(r.v).toFixed(1)}" x2="${W}" y2="${y(r.v).toFixed(1)}"
-            stroke="${r.c}" stroke-width="1" stroke-dasharray="3 3" opacity=".65"></line>`;
-  }
-  const pts = series.map((v,i)=> v==null ? null : `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
-  let run=[];
-  for(const p of pts.concat([null])){
-    if(p){ run.push(p); }
-    else { if(run.length>1) out += `<polyline points="${run.join(' ')}" fill="none"
-             stroke="${colour}" stroke-width="1.6"></polyline>`;
-           else if(run.length===1) out += `<circle cx="${run[0].split(',')[0]}"
-             cy="${run[0].split(',')[1]}" r="1.6" fill="${colour}"></circle>`;
-           run=[]; }
-  }
-  const last = series.filter(v=>v!=null).slice(-1)[0];
-  if(last!=null){
-    const li = series.length-1;
-    out += `<circle cx="${x(li).toFixed(1)}" cy="${y(last).toFixed(1)}" r="2.4" fill="${colour}"></circle>`;
-  }
-  svg.innerHTML = out;
+function counter(label, value, sub, flag){
+  return `<div class="cw"><u>${label}</u><b${flag?' class="flag"':''}>${value}</b>`+
+         `<small>${sub||''}</small></div>`;
 }
 
+/* ---- the recorder ------------------------------------------------------ */
+function drawChart(turns){
+  const W=1000, H=168, L=8, R=64, T=10, B=26;
+  const svg=document.getElementById('chart');
+  if(!turns.length){ svg.innerHTML=''; return; }
+  const n=turns.length;
+  const x=i => L + (n<2 ? (W-L-R)/2 : (i/(n-1))*(W-L-R));
+  const y=v => T + (1-Math.max(0,Math.min(1,v)))*(H-T-B);
+  const last=turns[turns.length-1];
+  const floor = last.novelty_floor!=null ? last.novelty_floor : 0.30;
+  const ceiling = last.sim_ceiling;
+  let o='';
+
+  /* printed grid: the paper, before any ink */
+  for(const v of [0,0.25,0.5,0.75,1]){
+    o+=`<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="var(--rule)" stroke-width=".5"/>`;
+    o+=`<text x="${W-R+6}" y="${y(v)+3}" fill="var(--ink-faint)" font-size="9"
+        font-family="var(--data)">${v.toFixed(2)}</text>`;
+  }
+  for(let i=0;i<n;i++){
+    if(turns[i].n%5) continue;
+    o+=`<line x1="${x(i)}" y1="${T}" x2="${x(i)}" y2="${H-B}" stroke="var(--rule)" stroke-width=".5"/>`;
+    o+=`<text x="${x(i)}" y="${H-B+13}" fill="var(--ink-faint)" font-size="9"
+        text-anchor="middle" font-family="var(--data)">${turns[i].n}</text>`;
+  }
+
+  /* the thresholds, printed on the stock rather than drawn by a pen */
+  /* Threshold captions sit inside the plot at the left, clear of the axis
+     numbers on the right — the two collided when both lived in the margin. */
+  if(ceiling!=null){
+    o+=`<line x1="${L}" y1="${y(ceiling)}" x2="${W-R}" y2="${y(ceiling)}"
+        stroke="var(--amber)" stroke-width="1" stroke-dasharray="7 4"/>`;
+    o+=`<text x="${W-R-6}" y="${y(ceiling)-5}" fill="var(--amber)" font-size="9"
+        text-anchor="end" font-family="var(--data)">ceiling ${ceiling.toFixed(3)}</text>`;
+  }
+  o+=`<line x1="${L}" y1="${y(floor)}" x2="${W-R}" y2="${y(floor)}"
+      stroke="var(--signal)" stroke-width="1.25" stroke-dasharray="7 4"/>`;
+  o+=`<text x="${W-R-6}" y="${y(floor)+12}" fill="var(--signal)" font-size="9"
+      text-anchor="end" font-family="var(--data)">floor ${floor.toFixed(2)}</text>`;
+
+  /* two pens */
+  for(const pen of [{k:'action_sim',c:'var(--pen-a)'},{k:'obs_novelty',c:'var(--pen-b)'}]){
+    let run=[];
+    const flush=()=>{ if(run.length>1) o+=`<polyline points="${run.join(' ')}" fill="none"
+        stroke="${pen.c}" stroke-width="1.6" stroke-linejoin="round"/>`; run=[]; };
+    for(let i=0;i<n;i++){
+      const v=turns[i][pen.k];
+      if(v==null){ flush(); continue; }
+      run.push(`${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+    }
+    flush();
+  }
+
+  /* refusals print as a hatch on the bottom margin — work that never happened */
+  for(let i=0;i<n;i++){
+    if(turns[i].executed!==false) continue;
+    o+=`<line x1="${x(i)}" y1="${H-B+1}" x2="${x(i)}" y2="${H-B+7}"
+        stroke="var(--signal)" stroke-width="2"/>`;
+  }
+  /* and the trip is stamped where it happened */
+  const trip=turns.findIndex(t => t.allowed===false);
+  if(trip>=0){
+    o+=`<line x1="${x(trip)}" y1="${T}" x2="${x(trip)}" y2="${H-B}"
+        stroke="var(--signal)" stroke-width="1"/>`;
+    /* Set along the line, the way an annotation is written on a chart roll.
+       Horizontal, it landed on top of whichever trace was pinned at 1.0. */
+    o+=`<text x="${x(trip)-4}" y="${H-B-4}" fill="var(--signal)" font-size="9.5"
+        font-family="var(--data)" transform="rotate(-90 ${x(trip)-4} ${H-B-4})"
+        >breaker open · turn ${turns[trip].n}</text>`;
+  }
+  svg.innerHTML=o;
+}
+
+/* ---- channels ---------------------------------------------------------- */
 function renderUnguarded(d){
-  const turns = d.turns||[];
-  const pane = document.getElementById('pane-unguarded');
+  const turns=d.turns||[];
   if(!turns.length) return;
-  pane.classList.remove('empty');
-  const executed = turns.filter(t => t.executed !== false).length;
-  document.getElementById('k-unguarded').innerHTML =
-    statCard('TURNS EXECUTED', executed, 'nothing stopped it') +
-    statCard('TURNS REFUSED', 0, 'no guard attached') +
-    statCard('TOKENS (EST)', num(executed*1850), 'illustrative') +
-    statCard('STALLED SINCE', firstStall(turns) ?? '—', 'same observation repeating');
-  const last = turns[turns.length-1];
-  document.getElementById('s-unguarded').textContent =
-    d.done ? 'finished · '+(d.summary['ended because']||'') : 'running';
-  document.getElementById('b-u').textContent =
-    d.done ? `${executed} turns, never tripped` : `${executed} turns, running`;
-  document.getElementById('m-unguarded').textContent =
-    `${last.model||''} ${last.digest? '· digest '+last.digest : ''}`.trim() || 'agent connected';
-  document.getElementById('f-unguarded').innerHTML = turns.map(row).join('');
-  scrollFeed('f-unguarded');
-  if(d.done && d.summary) document.getElementById('x-unguarded').textContent =
-    `${d.summary['turns executed']} turns executed · tripped at turn ${d.summary['tripped at turn']} · ${d.summary['ended because']}`;
-}
+  document.getElementById('ch-unguarded').classList.remove('idle');
+  const ran=turns.filter(t=>t.executed!==false).length;
+  const stall=stallSpan(turns);
+  const last=turns[turns.length-1];
 
-/* The turn at which the observation stopped changing. Computed, not assumed. */
-function firstStall(turns){
-  for(let i=2;i<turns.length;i++){
-    if(turns[i].observation && turns[i].observation===turns[i-1].observation
-       && turns[i-1].observation===turns[i-2].observation) return turns[i-2].n;
-  }
-  return null;
+  document.getElementById('u-sub').textContent =
+    `${last.model||'model unknown'}${last.digest?' · digest '+last.digest:''}`;
+  document.getElementById('u-status').textContent =
+    d.done ? (d.summary['ended because']||'finished') : 'running';
+  document.getElementById('u-counts').innerHTML =
+    counter('Turns run', ran, 'nothing stopped it') +
+    counter('Spent stalled', stall.spent,
+            stall.from ? `repeating since turn ${stall.from}` : 'no repeat yet', stall.spent>0) +
+    counter('Tokens', num(ran*1850), 'illustrative') +
+    counter('Refused', 0, 'no breaker attached');
+  document.getElementById('u-counts').classList.add('four');
+  document.getElementById('u-roll').innerHTML = turns.map(logRow).join('');
+  scroll('u-roll');
+  if(d.done) document.getElementById('u-foot').textContent =
+    `${d.summary['turns executed']} turns · never tripped · ${d.summary['ended because']}`;
 }
 
 function renderPlateau(d){
-  const turns = d.turns||[];
-  const pane = document.getElementById('pane-plateau');
+  const turns=d.turns||[];
   if(!turns.length) return;
-  pane.classList.remove('empty');
-  const executed = turns.filter(t => t.executed !== false).length;
-  const refused  = turns.filter(t => t.executed === false).length;
-  const judged   = turns.filter(t => t.allowed === false && t.executed !== false);
-  const last     = turns[turns.length-1];
-  const encoder  = d.summary['encoder calls'];
+  document.getElementById('ch-plateau').classList.remove('idle');
+  const ran=turns.filter(t=>t.executed!==false).length;
+  const refused=turns.filter(t=>t.executed===false).length;
+  const stall=stallSpan(turns);
+  const last=turns[turns.length-1];
+  const encoder=d.summary['encoder calls'];
 
-  document.getElementById('s-plateau').textContent =
-    d.done ? 'finished · '+(d.summary['ended because']||'') : (last.state||'running');
-  document.getElementById('b-p').textContent = d.done
-    ? `${executed} executed, ${refused} refused, tripped at ${d.summary['tripped at turn']}`
-    : `${executed} executed, ${refused} refused, ${last.state}`;
-  document.getElementById('b-task').textContent = 'refresh the expired auth token';
-  document.getElementById('m-plateau').textContent =
-    `${last.model||''} ${last.digest? '· digest '+last.digest : ''}`.trim() || 'agent connected';
-  if(last.novelty_floor!=null)
-    document.getElementById('b-floor').textContent = last.novelty_floor.toFixed(2)+' novelty';
+  document.getElementById('m-task').textContent='refresh an expired auth token';
+  document.getElementById('m-model').textContent=
+    `${last.model||''}${last.digest?' · digest '+last.digest:''}`;
+  document.getElementById('p-sub').textContent=
+    `${last.model||'model unknown'}${last.digest?' · digest '+last.digest:''}`;
+  document.getElementById('p-status').textContent =
+    d.done ? (d.summary['ended because']||'finished') : last.state.toLowerCase();
 
-  /* state machine */
-  for(const cell of document.querySelectorAll('#fsm div')){
-    const on = cell.dataset.s === last.state;
-    cell.className = on ? 'on '+(last.state==='OPEN'?'hot':last.state==='HALF_OPEN'?'warm':'calm') : '';
+  for(const lamp of document.querySelectorAll('#lamps div')){
+    lamp.className = lamp.dataset.s===last.state
+      ? 'lit '+(last.state==='OPEN'?'alarm':last.state==='HALF_OPEN'?'hold':'')
+      : '';
   }
 
-  document.getElementById('k-plateau').innerHTML =
-    statCard('TURNS EXECUTED', executed, 'the ones that cost money') +
-    statCard('TURNS REFUSED', refused, 'never reached a tool') +
-    statCard('TOKENS (EST)', num(executed*1850), 'illustrative') +
-    /* Counted by the encoder itself, and only reported when the run ends.
-       Nothing here infers it from turn counts — the whole claim is that it
-       does NOT track turns once the breaker is open. */
-    statCard('ENCODER CALLS', encoder!=null?encoder:'—',
-             encoder!=null ? 'zero on refused turns' : 'counted, reported at end');
+  document.getElementById('p-counts').innerHTML =
+    counter('Turns run', ran, 'the ones that cost money') +
+    counter('Refused', refused, 'never reached a tool', refused>0) +
+    counter('Spent stalled', stall.spent,
+            stall.from ? `repeating since turn ${stall.from}` : 'no repeat yet') +
+    counter('Encoder calls', encoder!=null?encoder:'—',
+            encoder!=null?'none on refused turns':'reported at end');
 
-  /* dials, with the ceiling and floor the agent actually reported */
-  const sim = turns.map(t => t.action_sim);
-  const nov = turns.map(t => t.obs_novelty);
-  const ceiling = last.sim_ceiling;
-  const floor = last.novelty_floor!=null ? last.novelty_floor : FLOOR_DEFAULT;
-  spark(document.getElementById('sv-sim'), sim,
-        [{v:ceiling, c:'#f5b23d'}], '#9d7cf4');
-  spark(document.getElementById('sv-nov'), nov,
-        [{v:floor, c:'#ff5a47'}], '#25e0c8');
-
-  const warm = document.getElementById('warmtext');
-  if(last.calibrated_n!=null && last.min_samples!=null){
-    const done = last.calibrated_n >= last.min_samples;
-    warm.innerHTML = done
-      ? `calibrated on ${last.calibrated_n} productive turns · ceiling ${ceiling!=null?ceiling.toFixed(3):'—'} (amber) · floor ${floor.toFixed(2)} (red)`
-      : `calibrating — ${last.calibrated_n}/${last.min_samples} productive turns, the breaker cannot arm yet`;
-    // The meter is only meaningful while warming; once armed it would just be
-    // a permanently full bar competing with the sparklines for attention.
-    document.getElementById('warmbar').style.display = done ? 'none' : 'block';
-    document.getElementById('warmfill').style.width =
-      Math.min(100, 100*last.calibrated_n/last.min_samples)+'%';
+  drawChart(turns);
+  if(last.calibrated_n!=null){
+    const warm=last.calibrated_n>=last.min_samples;
+    document.getElementById('rec-cal').innerHTML = warm
+      ? `Calibrated on <b>${last.calibrated_n}</b> productive turns · ceiling <b>${last.sim_ceiling.toFixed(3)}</b> · floor <b>${(last.novelty_floor).toFixed(2)}</b>`
+      : `Calibrating — <b>${last.calibrated_n} of ${last.min_samples}</b> productive turns. The breaker cannot arm yet.`;
   }
+  const q={}; for(const t of turns) if(t.quadrant) q[t.quadrant]=(q[t.quadrant]||0)+1;
+  document.getElementById('rec-quads').innerHTML =
+    ['explore','grind','loop','thrash'].map(k=>`${k} <b>${q[k]||0}</b>`).join(' · ');
 
-  /* quadrant tally */
-  const counts = {};
-  for(const t of turns) if(t.quadrant) counts[t.quadrant]=(counts[t.quadrant]||0)+1;
-  document.getElementById('quads').innerHTML =
-    ['explore','grind','loop','thrash'].map(q =>
-      `<span class="q-${q}"><b>${counts[q]||0}</b>${q}</span>`).join('');
+  const cut=turns.filter(t=>t.allowed===false&&t.message).slice(-1)[0];
+  const slip=document.getElementById('slip');
+  if(cut){
+    slip.classList.add('on');
+    const parts=cut.message.split('Escape:');
+    document.getElementById('slip-why').textContent=parts[0].trim();
+    document.getElementById('slip-esc').textContent=parts[1]?'Escape: '+parts[1].trim():'';
+  } else slip.classList.remove('on');
 
-  document.getElementById('f-plateau').innerHTML = turns.map(row).join('');
-  scrollFeed('f-plateau');
-
-  /* the trip card: the newest verdict the breaker produced */
-  const opened = judged[judged.length-1] || turns.filter(t=>t.executed===false).slice(-1)[0];
-  const card = document.getElementById('trip');
-  if(opened && opened.message){
-    card.classList.add('on');
-    const parts = opened.message.split('Escape:');
-    document.getElementById('trip-why').textContent = parts[0].trim();
-    document.getElementById('trip-esc').textContent = parts[1] ? 'Escape: '+parts[1].trim() : '';
-  } else { card.classList.remove('on'); }
-
-  if(d.done && d.summary) document.getElementById('x-plateau').textContent =
-    `${d.summary['turns executed']} executed, ${d.summary['turns refused']} refused · ` +
-    `tripped at turn ${d.summary['tripped at turn']} · ${d.summary['ended because']}`;
+  document.getElementById('p-roll').innerHTML=turns.map(logRow).join('');
+  scroll('p-roll');
+  if(d.done) document.getElementById('p-foot').textContent =
+    `${d.summary['turns executed']} run, ${d.summary['turns refused']} refused · ` +
+    `opened at turn ${d.summary['tripped at turn']} · ${d.summary['ended because']}`;
 }
 
-function row(t){
-  const cls = t.phase==='survey' ? 't survey' : 't';
-  if(t.executed === false){
-    return `<div class="${cls}"><span class="n">${t.n}</span><span>
-      <span class="refused">REFUSED ${esc(t.action)}</span>
-      <div class="msg">${esc(t.reason)}</div></span></div>`;
+function logRow(t){
+  const pre = t.phase==='survey' ? ' pre' : '';
+  if(t.executed===false){
+    return `<div class="r cut${pre}"><span class="idx">${t.n}</span><span>
+      <span class="act">refused &nbsp;${esc(t.action)}</span>
+      <div class="note">${esc(t.reason)}</div></span></div>`;
   }
-  const dials = (t.action_sim!=null)
-    ? `<span class="dials q-${t.quadrant||''}"> sim ${t.action_sim.toFixed(2)} · nov ${t.obs_novelty.toFixed(2)} · ${t.quadrant||''}</span>` : '';
-  const verdict = (t.allowed === false && t.reason)
-    ? `<div class="msg">breaker: ${esc(t.reason)}</div>` : '';
-  return `<div class="${cls}"><span class="n">${t.n}</span><span>${esc(t.action)}${dials}
-    <div class="obs">→ ${esc((t.observation||'').split('\\n')[0].slice(0,110))}</div>${verdict}</span></div>`;
+  const dial = t.action_sim!=null
+    ? `<span class="dial"> &nbsp;sim ${t.action_sim.toFixed(2)} &nbsp;nov ${t.obs_novelty.toFixed(2)} &nbsp;<span class="q-${t.quadrant||''}">${t.quadrant||''}</span></span>` : '';
+  const note = (t.allowed===false && t.reason)
+    ? `<div class="note">${esc(t.reason)}</div>` : '';
+  return `<div class="r${pre}"><span class="idx">${t.n}</span><span>${esc(t.action)}${dial}
+    <div class="obs">${esc((t.observation||'').split('\\n')[0].slice(0,108))}</div>${note}</span></div>`;
 }
 
-function scrollFeed(id){ const f=document.getElementById(id); f.scrollTop=f.scrollHeight; }
+function scroll(id){const e=document.getElementById(id);e.scrollTop=e.scrollHeight;}
 
 async function tick(){
   try{
-    const r = await fetch('/state', {cache:'no-store'});
-    const s = await r.json();
+    const r=await fetch('/state',{cache:'no-store'});
+    const s=await r.json();
     renderUnguarded(s.unguarded); renderPlateau(s.plateau);
-    /* solo mode: one pane connected, so give it the whole width */
-    const live = ['unguarded','plateau'].filter(m => (s[m].turns||[]).length).length;
-    document.getElementById('grid').classList.toggle('solo', live===1);
+    const live=['unguarded','plateau'].filter(m=>(s[m].turns||[]).length).length;
+    document.getElementById('channels').classList.toggle('solo',live===1);
   }catch(e){}
-  setTimeout(tick, 700);
+  setTimeout(tick,700);
 }
 tick();
 </script>
