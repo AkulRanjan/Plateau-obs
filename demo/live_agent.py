@@ -76,28 +76,42 @@ def resolve_collector(explicit: str | None = AUTO) -> tuple[str | None, str]:
     return None, "not configured"
 
 
-def preflight(url: str, provenance: str) -> None:
+def preflight(url: str, provenance: str, wait: float = 0.0) -> None:
     """Confirm the collector answers BEFORE the run starts.
 
     Previously the agent discovered an unreachable collector only in its closing
     summary — after every turn had already been posted into the void. That
     happened three times in one evening because the wifi reassigned the IP, and
     each time it cost a full take. Failing here costs two seconds.
+
+    `wait` seconds of retrying exists for run_demo.sh, which starts the collector
+    itself and must not race its socket. The agent still calls this with wait=0:
+    by the time an agent runs, a collector that is not up is a fault, not a
+    process still booting. One implementation, so there is one error message.
     """
     probe = f"{url}/state"
-    try:
-        response = httpx.get(probe, timeout=4.0)
-        response.raise_for_status()
-    except Exception as exc:  # noqa: BLE001 - the message matters, not the type
-        raise SystemExit(
-            f"\n  collector unreachable — refusing to start.\n"
-            f"    tried    : {probe}\n"
-            f"    from     : {provenance}\n"
-            f"    error    : {exc.__class__.__name__}: {exc}\n\n"
-            f"  The address is almost certainly stale: this machine's wifi IP has\n"
-            f"  changed repeatedly. Re-read the collector's boot banner for the\n"
-            f"  current one, or run without --collector to record locally only.\n"
-        )
+    deadline = time.monotonic() + wait
+    while True:
+        try:
+            response = httpx.get(probe, timeout=4.0)
+            response.raise_for_status()
+            return
+        except Exception as exc:  # noqa: BLE001 - the message matters, not the type
+            # `exc` is unbound the moment this block ends, so keep the details.
+            last = f"{exc.__class__.__name__}: {exc}"
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(0.25)
+
+    raise SystemExit(
+        f"\n  collector unreachable — refusing to start.\n"
+        f"    tried    : {probe}\n"
+        f"    from     : {provenance}\n"
+        f"    error    : {last}\n\n"
+        f"  The address is almost certainly stale: this machine's wifi IP has\n"
+        f"  changed repeatedly. Re-read the collector's boot banner for the\n"
+        f"  current one, or run without --collector to record locally only.\n"
+    )
 
 
 SYSTEM_PROMPT = (

@@ -410,3 +410,106 @@ def test_dashboard_states_that_token_figures_are_illustrative(live_collector):
     with urllib.request.urlopen(live_collector + "/", timeout=5) as response:
         body = response.read().decode()
     assert "ILLUSTRATIVE" in body
+
+
+# --------------------------------------------------------------------------
+# the model seam, and the one-command runner
+# --------------------------------------------------------------------------
+
+
+class _FakeResponse:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict:
+        return self._payload
+
+
+class _FakeClient:
+    """Records the calls made, answers from a fixed payload."""
+
+    def __init__(self, payload: dict) -> None:
+        self.payload = payload
+        self.gets: list[str] = []
+        self.posts: list[tuple[str, dict]] = []
+
+    def get(self, url, **_kw):
+        self.gets.append(url)
+        return _FakeResponse(self.payload)
+
+    def post(self, url, json=None, **_kw):
+        self.posts.append((url, json or {}))
+        return _FakeResponse(self.payload)
+
+
+TAGS = {
+    "models": [
+        {"name": "nomic-embed-text:latest", "digest": "0a109f422b47", "details": {}},
+        {
+            "name": "llama3.1:8b",
+            "model": "llama3.1:8b",
+            "digest": "46e0c10c039e01911933deadbeef",
+            "details": {"quantization_level": "Q4_K_M"},
+        },
+    ]
+}
+
+
+def test_ollama_digest_is_a_real_digest():
+    """The RUNBOOK asks two laptops to compare this string before recording.
+
+    It read /api/show, which has no `digest` key, so it fell through to
+    details.parent_model — empty for every non-derived model — and the banner
+    printed `digest=` on both machines. Two blanks compare equal, which is the
+    worst possible way to fail a determinism check.
+    """
+    from demo.live_model import OllamaModel
+
+    model = OllamaModel(model="llama3.1:8b")
+    model._client = _FakeClient(TAGS)
+    digest = model.digest()
+
+    assert digest.startswith("46e0c10c039e")
+    assert "Q4_K_M" in digest, "quantisation differing under the same tag must be visible"
+    assert model._client.gets == ["http://localhost:11434/api/tags"]
+
+
+def test_ollama_digest_says_so_when_the_model_is_missing():
+    from demo.live_model import OllamaModel
+
+    model = OllamaModel(model="mistral:7b")
+    model._client = _FakeClient(TAGS)
+    assert "not pulled" in model.digest()
+
+
+RUN_DEMO = ROOT / "demo" / "run_demo.sh"
+
+
+def test_run_demo_script_is_executable_and_valid():
+    import shutil
+    import subprocess
+
+    assert RUN_DEMO.exists(), "the one-command runner is what gets typed on stage"
+    assert os.access(RUN_DEMO, os.X_OK), "run_demo.sh must be chmod +x"
+    bash = shutil.which("bash")
+    if bash:
+        assert subprocess.run([bash, "-n", str(RUN_DEMO)]).returncode == 0
+
+
+def test_run_demo_defaults_to_ollama_and_needs_no_aws():
+    """--model-kind ollama is the default and must stay the default.
+
+    Bedrock is best-effort: nothing about it may be required to run the demo.
+    """
+    body = RUN_DEMO.read_text(encoding="utf-8")
+    assert 'MODEL_KIND="ollama"' in body
+
+    # Prose may discuss AWS; the executable lines may not touch it.
+    code = "\n".join(
+        line for line in body.splitlines() if not line.lstrip().startswith("#")
+    )
+    for aws_ism in ("aws ", "AWS_PROFILE", "AWS_REGION", "AWS_DEFAULT", "boto3", "sts "):
+        assert aws_ism not in code, f"the runner must not require {aws_ism!r}"

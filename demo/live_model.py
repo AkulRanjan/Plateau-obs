@@ -64,12 +64,24 @@ class OllamaModel:
         self._client = httpx.Client(timeout=timeout)
 
     def digest(self) -> str:
-        """The model's content digest, so two machines can prove they match."""
+        """The model's content digest, so two machines can prove they match.
+
+        Read from /api/tags, which is where ollama actually reports it. /api/show
+        has no `digest` key at all, so the old lookup fell through to
+        details.parent_model — empty string for every non-derived model — and the
+        banner printed a blank the RUNBOOK then asked two laptops to compare.
+
+        The quantisation level rides along: same tag with a different quant is
+        the divergence that would otherwise be invisible.
+        """
         try:
-            r = self._client.post(f"{self.url}/api/show", json={"name": self.name})
+            r = self._client.get(f"{self.url}/api/tags")
             r.raise_for_status()
-            body = r.json()
-            return (body.get("digest") or body.get("details", {}).get("parent_model") or "")[:20]
+            for entry in r.json().get("models", []):
+                if entry.get("name") == self.name or entry.get("model") == self.name:
+                    quant = (entry.get("details") or {}).get("quantization_level") or "?"
+                    return f"{(entry.get('digest') or '')[:12]} {quant}"
+            return f"not pulled on this machine ({self.name})"
         except Exception as exc:  # noqa: BLE001 - diagnostics only
             return f"unavailable ({exc.__class__.__name__})"
 
