@@ -25,6 +25,15 @@ dependencies = [
 dev = [
     "pytest==8.3.4",
 ]
+# demo/ only. `demo.live_agent` imports httpx to reach the collector and ollama,
+# and `demo.make_deck` builds the pptx. Neither is needed to run the detector or
+# reproduce metrics.json, but tests/test_live_demo.py imports demo.live_agent,
+# so a dev environment without these cannot collect the suite -- which is how
+# the omission was found.
+demo = [
+    "httpx==0.28.1",
+    "python-pptx==1.0.2",
+]
 
 [tool.setuptools.packages.find]
 include = ["plateau*"]

@@ -60,17 +60,31 @@ from dataclasses import dataclass, field
 #: Minimum observation novelty for a turn to be allowed to teach the baseline,
 #: and the line below which a turn reads as "learned nothing".
 #:
-#: PROVISIONAL, PENDING SWEEP. Not a hand-picked number: chosen against the
-#: measured distribution in metrics.json -> novelty_floor_probe, where pollers
-#: top out at 0.2311 and batch work starts at 0.2572 (invoice pair 0.4392).
-#: 0.30 sits above the poller band and below batch. It is still a provisional
-#: value and eval/sweep.py owns the final one.
+#: Chosen against the measured distribution in
+#: metrics.json -> novelty_floor_probe: near-duplicates (poller + true loop) top
+#: out at 0.2311, and genuinely informative observations (batch + progress)
+#: start at 0.2572. Any floor strictly inside (0.2311, 0.2572) separates all 17
+#: measured readings correctly. Of the four values in the sweep grid, 0.25 is
+#: the only one inside that window.
+#:
+#: CORRECTED. This was 0.30, justified by a docstring claiming it "sits above
+#: the poller band and below batch". The first half was true and the second was
+#: not: batch starts at 0.2572, so 0.30 sat *above* the bottom of the batch
+#: band and read three of the five measured batch observations as stagnant. The
+#: probe block that number cited had also gone stale -- it still described a
+#: 0.15 candidate long after the code moved to 0.30 -- which is why the
+#: contradiction survived. scripts/novelty_floor_check.py now imports this
+#: constant instead of restating it, so the two cannot drift again.
+#:
+#: Neither sweep discriminates: every floor in the grid is usable in both
+#: metrics.json -> sweep and -> long_trace_sweep. The probe is therefore the
+#: only measurement with anything to say about this value, and it says 0.25.
 #:
 #: This deliberately does NOT separate pollers from loops, because no threshold
 #: can: a poller is genuinely informationally stalled, so it reads the same as a
 #: loop by construction. The consequence is a hard requirement, not a
 #: workaround -- see the module docstring on `idempotent`.
-NOVELTY_FLOOR = 0.30
+NOVELTY_FLOOR = 0.25
 
 #: Productive turns required before the learned ceiling is trusted at all.
 MIN_SAMPLES = 6

@@ -36,8 +36,15 @@ os.environ["HF_HUB_OFFLINE"] = "1"
 
 from plateau.encoder import MiniLMEncoder, cosine  # noqa: E402
 
-#: The placeholder under test. Named as a placeholder, not as a finding.
-CANDIDATE_FLOOR = 0.15
+#: The floor under test. This tracks the value actually shipped in
+#: plateau/calibrator.py, so the probe reports on the live floor rather than on
+#: a placeholder nobody updated.
+#:
+#: It used to be a hardcoded 0.15 with status "placeholder pending sweep", and
+#: it stayed 0.15 after the shipped floor moved to 0.30 -- so the one
+#: `candidate_floor_survives` verdict in metrics.json referred to a value that
+#: was no longer in the code. Importing it makes that class of drift impossible.
+from plateau.calibrator import NOVELTY_FLOOR as CANDIDATE_FLOOR  # noqa: E402
 
 # The three readings the floor decision hinges on.
 # (class, label, obs_a, obs_b)
@@ -168,7 +175,10 @@ def main() -> int:
     doc["novelty_floor_probe"] = {
         "encoder": enc.fingerprint(),
         "candidate_floor": CANDIDATE_FLOOR,
-        "candidate_floor_status": "placeholder pending sweep",
+        "candidate_floor_status": (
+            "the floor shipped in plateau/calibrator.py, imported rather than "
+            "restated; the sweep owns its value"
+        ),
         "readings": rows,
         "per_class": summary,
         "highest_near_duplicate": round(hold_below, 6),

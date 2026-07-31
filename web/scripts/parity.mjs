@@ -19,7 +19,17 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const DRAFT = "/home/nithish/Videos/frontier/PlateauConsole.jsx";
+
+// The draft, vendored. It used to be read from an absolute path in one
+// developer's home directory, which meant `npm run verify` -- the single
+// command that says whether the demo is safe to present -- could not run on any
+// other machine, including CI. The file is checked in unmodified so the
+// extraction below still reads the original rather than a retyped copy.
+//
+// PLATEAU_DRAFT overrides it, so the check can still be pointed at the live
+// draft while it is being edited.
+const DRAFT =
+  process.env.PLATEAU_DRAFT ?? resolve(HERE, "../reference/PlateauConsole.draft.jsx");
 
 // The draft's plain-JS region: from the first constant through the end of
 // deriveState, stopping before `const ACCENT` (after which it is all JSX).

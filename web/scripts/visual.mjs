@@ -56,6 +56,47 @@ const WIDTH = Number(flag("width", "1920"));
 const HEIGHT = Number(flag("height", SPLIT ? "1500" : "2600"));
 const CDP = flag("cdp", "http://127.0.0.1:9222");
 
+// --- make sure something is serving the page ------------------------------
+//
+// This used to assume a dev server was already running, which meant
+// `npm run verify` -- the one command that says whether the demo is safe to
+// present -- silently depended on a `npm run dev` the developer happened to
+// have open in another terminal. Without it the page never loaded, and the
+// check reported three confident, wrong diagnoses: that the run never reached
+// OPEN, that an animation had not finished, and that no telemetry rows were
+// visible. All three were true of a browser error page. A check that
+// misdiagnoses its own environment is worse than one that fails.
+async function serverUp() {
+  try {
+    const r = await fetch(URL_, { redirect: "manual" });
+    return r.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+let server = null;
+if (!(await serverUp())) {
+  const port = new URL(URL_).port || "5173";
+  server = spawn(
+    "npx",
+    ["vite", "--port", port, "--strictPort", "--logLevel", "error"],
+    { cwd: resolve(HERE, ".."), stdio: "ignore", detached: true }
+  );
+  server.unref();
+  for (let i = 0; i < 40; i++) {
+    if (await serverUp()) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  if (!(await serverUp())) {
+    console.error(
+      `\nvisual CHECK FAILED — nothing is serving ${URL_} and vite would not ` +
+        `start.\nStart it yourself and re-run:\n  npm run dev\n`
+    );
+    process.exit(1);
+  }
+}
+
 // --- make sure a debuggable Chrome is listening ---------------------------
 async function chromeUp() {
   try {
@@ -280,12 +321,26 @@ console.log(
     `\n  failed requests: ${failedRequests.length}`
 );
 
+// Only tear down the server if this script started it. A dev server the
+// developer already had running is theirs, not ours.
+function stopServer() {
+  if (server) {
+    try {
+      process.kill(-server.pid);
+    } catch {
+      /* already gone */
+    }
+  }
+}
+
 if (problems.length) {
   console.error(`\nvisual CHECK FAILED — ${problems.length} problem(s):\n`);
   for (const p of problems) console.error(`  · ${p}`);
   console.error("");
+  stopServer();
   process.exit(1);
 }
 
-console.log(`\nvisual check OK\n`);
+console.log(`\nvisual check OK${server ? " (vite started and stopped by this check)" : ""}\n`);
+stopServer();
 process.exit(0);

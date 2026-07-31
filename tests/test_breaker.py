@@ -7,6 +7,8 @@ claim can be proved by counting rather than asserted.
 
 from __future__ import annotations
 
+import hashlib
+
 import numpy as np
 import pytest
 
@@ -20,6 +22,13 @@ class CountingEncoder:
 
     Maps text to a unit vector by hashing, so identical text gives identical
     vectors and different text gives near-orthogonal ones. No model involved.
+
+    The seed comes from blake2b, NOT from `hash()`. Python randomises string
+    hashing per process, so a `hash()`-seeded fake produces different vectors on
+    every run: at dim 16 the random cosines have sigma ~= 0.25, and `max_cosine`
+    over an 8-entry window would occasionally leave `1 - obs_sim` below the 0.30
+    floor and flip the probe-recovery tests. Measured ~1 failing run in 25.
+    A fake that is only sometimes deterministic cannot pin a state machine.
     """
 
     def __init__(self, dim: int = 16) -> None:
@@ -33,7 +42,8 @@ class CountingEncoder:
         self.n_texts_encoded += len(texts)
         out = np.zeros((len(texts), self.dim), dtype=np.float32)
         for row, text in enumerate(texts):
-            rng = np.random.default_rng(abs(hash(text)) % (2**32))
+            digest = hashlib.blake2b(text.encode("utf-8"), digest_size=4).digest()
+            rng = np.random.default_rng(int.from_bytes(digest, "big"))
             vec = rng.standard_normal(self.dim).astype(np.float32)
             out[row] = vec / np.linalg.norm(vec)
         return out
@@ -401,7 +411,11 @@ def test_provisional_parameters_are_flagged():
     from plateau.breaker import BACKOFF, COOLDOWN_TURNS, MAX_COOLDOWN, TRIP_AFTER, WINDOW_SIZE
 
     assert TRIP_AFTER == 1   # §6 owns multi-turn counting now
-    assert WINDOW_SIZE == 8
+    # 16, from metrics.json -> long_trace_sweep: the usable set is {12, 16, 24}
+    # and window_size is the only load-bearing axis of the five. The breaker
+    # re-exports §6's constant rather than declaring its own, so this also
+    # guards against the two drifting apart.
+    assert WINDOW_SIZE == 16
     assert COOLDOWN_TURNS == 1
     # Provisional, pending a decision. Present so a change is deliberate.
     assert BACKOFF == 2.0

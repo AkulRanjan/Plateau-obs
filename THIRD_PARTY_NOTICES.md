@@ -270,15 +270,35 @@ confirmed in real use by `LimitToolCounts` above.
 
 ## Datasets
 
-### PatronusAI/TRAIL — `PLANNED, NEVER VENDORED`
+### PatronusAI/TRAIL — `FETCHED, NEVER VENDORED`
 
 - **Paper:** Deshpande et al., *TRAIL: Trace Reasoning and Agentic Issue
   Localization*, 2025, arXiv:2505.08638
-- **Dataset:** `PatronusAI/TRAIL` — 148 human-annotated agent traces
-- **Access:** gated. Its terms forbid resharing.
-- **Handling:** downloaded by a human into `data/trail/`, which is gitignored.
-  This repository contains **no** TRAIL data and no script that downloads it.
-  Derived numbers may be published; trace content may not.
+- **Dataset:** `PatronusAI/TRAIL` — 148 human-annotated agent traces (117 GAIA,
+  31 SWE-Bench Lite), 1,987 OpenInference spans, 841 annotated errors.
+- **Licence:** MIT, but **gated**. The gate text reads: *"To avoid contamination
+  and data leakage, you agree to not reshare this dataset outside of a gated or
+  private repository on the HF hub."* Gating is `auto` — any logged-in Hugging
+  Face account is approved instantly.
+- **Revision pinned:** `b424ce63d5973d5dcd7169b1bc3c07ccdee276d1`, recorded in
+  `eval/trail.py::DATASET_NOTE` so the trace set behind every number is fixed.
+- **Handling:** `scripts/fetch_trail.py` downloads it into `data/trail/`, which
+  is gitignored. This repository contains **no** TRAIL data. The fetch script is
+  a downloader, not a mirror — it cannot run without the user's own HF
+  credentials, and it fetches only the span trees and the expert annotations,
+  not the parquet mirrors.
+- **What is published:** aggregate recall / false-trip / turns-to-detection,
+  trace and span *counts*, and error-category *names* from the published
+  taxonomy. No span text, no trace content, no per-trace evidence strings ever
+  reach `metrics.json`.
+- **Out-of-scope use, honoured:** the dataset card forbids using TRAIL to train
+  systems that automate human evaluation. Nothing here trains on it; it is used
+  only to evaluate a detector whose parameters were fixed before it was fetched.
+
+  *Our* two normalisation decisions — which spans become turns, and which error
+  categories count as "should have tripped" — are ours, not TRAIL's, and are
+  documented in `eval/trail.py` and serialised into
+  `metrics.json → trail_comparison` with every variant measured.
 
 ---
 

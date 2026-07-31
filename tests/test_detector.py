@@ -111,23 +111,66 @@ def test_calibrator_has_no_thrash_floor():
 def test_fixture_1_paraphrase_reads_loop(encoder):
     detector = warmed(encoder)
     readings = run(detector, FIXTURES["1_paraphrase_loop"]["turns"])
-    final = readings[-1]
 
+    # Index 1 is the gate-1 measured pair, kept pinned where it has always been:
+    # 'auth token refresh' against 'how do I refresh a token'. The fixture is
+    # now six turns rather than two, so this is no longer readings[-1].
+    assert readings[1].action_sim == pytest.approx(0.8927, abs=5e-4)
+    assert readings[1].obs_novelty == pytest.approx(0.0, abs=1e-6)
+
+    final = readings[-1]
     assert final.quadrant is Quadrant.LOOP
     assert final.stagnant and final.confident
     assert final.obs_novelty == pytest.approx(0.0, abs=1e-6)
-    assert final.action_sim == pytest.approx(0.8927, abs=5e-4)
+
+
+def test_fixture_1_now_trips_where_it_used_to_be_too_short_to(encoder):
+    """The fixture-length artifact, pinned so it cannot come back.
+
+    At two turns this could not trip at any parameter setting: turn 0 is not
+    stagnant, so loop_hits peaked at 1 against a grid starting at 2. The sweep
+    reported that as '0 usable configurations out of 144' -- a statement about
+    trace length wearing the costume of a statement about the design.
+    """
+    detector = warmed(encoder)
+    readings = run(detector, FIXTURES["1_paraphrase_loop"]["turns"])
+
+    assert not readings[0].stagnant, "turn 0 is novel against the preamble"
+    trips = [i for i, r in enumerate(readings) if r.is_trip]
+    assert trips, "a paraphrase loop must be able to trip"
+    assert trips[0] == FIXTURES["1_paraphrase_loop"]["expect_trip_turn"]
+    assert trips[0] == TRIP_AFTER_LOOP
 
 
 def test_fixture_2_invoice_batch_reads_grind(encoder):
     detector = warmed(encoder)
     readings = run(detector, FIXTURES["2_invoice_batch_grind"]["turns"])
-    final = readings[-1]
 
+    # The gate-1 measured pair, as above: invoice_041 against invoice_042.
+    assert readings[1].action_sim == pytest.approx(0.9913, abs=5e-4)
+    assert readings[1].obs_novelty == pytest.approx(0.4392, abs=5e-4)
+
+    final = readings[-1]
     assert final.quadrant is Quadrant.GRIND
     assert not final.is_trip, "the counter-demo must not trip"
-    assert final.action_sim == pytest.approx(0.9913, abs=5e-4)
-    assert final.obs_novelty == pytest.approx(0.4392, abs=5e-4)
+
+
+def test_the_counter_demo_holds_for_as_long_as_the_loop_fixture_runs(encoder):
+    """Both fixtures were lengthened together, deliberately.
+
+    Lengthening only the positive one would have bought recall for free and made
+    the sweep claim more than it knows. This pins the symmetry: the batch job
+    survives exactly as many turns as the paraphrase loop needs to trip.
+    """
+    loop_turns = FIXTURES["1_paraphrase_loop"]["turns"]
+    batch_turns = FIXTURES["2_invoice_batch_grind"]["turns"]
+    assert len(batch_turns) == len(loop_turns)
+
+    readings = run(warmed(encoder), batch_turns)
+    assert not any(r.is_trip for r in readings)
+    assert all(r.quadrant is Quadrant.GRIND for r in readings[1:])
+    # Every turn clears the floor on its own merits, not by a hair.
+    assert all(r.obs_novelty > readings[0].novelty_floor for r in readings)
 
 
 def test_batch_protected_by_novelty_not_similarity(encoder):
@@ -273,3 +316,91 @@ def test_config_labels_are_distinct():
     assert PlateauConfig().label == "plateau"
     assert PlateauConfig(action_only=True).label == "plateau_action_only"
     assert PlateauConfig(novelty_only=True).label == "plateau_novelty_only"
+
+
+# --- the window, and the declaration ------------------------------------------
+
+
+def test_window_size_is_owned_by_the_config_and_reaches_the_deques(encoder):
+    """It was a bare constructor kwarg swept by nothing. The sweep owns it now."""
+    detector = Detector(encoder=encoder, config=PlateauConfig(window_size=16))
+    assert detector.window_size == 16
+    assert detector._obs_vecs.maxlen == 16
+    assert detector._action_vecs.maxlen == 16
+
+
+def test_explicit_window_kwarg_still_overrides_the_config(encoder):
+    """The breaker and older callers build detectors without a config."""
+    detector = Detector(
+        encoder=encoder, config=PlateauConfig(window_size=16), window_size=4
+    )
+    assert detector.window_size == 4
+
+
+def test_breaker_and_detector_share_one_window_constant():
+    """If these two drift, the live demo behaves differently from every number
+    in metrics.json and nothing else in the suite would notice."""
+    from plateau import breaker as breaker_module
+    from plateau.detector import WINDOW_SIZE
+
+    assert breaker_module.WINDOW_SIZE is WINDOW_SIZE
+
+
+def test_a_loop_longer_than_the_window_is_invisible(encoder):
+    """The measured reason Plateau missed the varied-wording paraphrase class.
+
+    Both dials are max_cosine against the last `window_size` turns, so a
+    repetition whose period exceeds the window can never be compared against its
+    own earlier occurrence. This is a structural limit, not a threshold that
+    could be tuned around.
+    """
+    from eval.traces import RUNAWAY_PARAPHRASE_LOOP_VARIED_WORDING, _DEAD_END_PHRASINGS
+
+    cycling = RUNAWAY_PARAPHRASE_LOOP_VARIED_WORDING
+    period = len(_DEAD_END_PHRASINGS)
+
+    short = Detector(
+        encoder=encoder, config=PlateauConfig(window_size=period - 4)
+    ).run(cycling)
+    long = Detector(
+        encoder=encoder, config=PlateauConfig(window_size=period + 4)
+    ).run(cycling)
+
+    assert short is None, f"a {period - 4}-turn window cannot see a {period}-turn cycle"
+    assert long is not None, f"a {period + 4}-turn window can"
+
+
+def test_idempotent_turns_carry_no_evidence(encoder):
+    """A declared-idempotent tool must not accumulate stall evidence."""
+    polling = [
+        ("check_build_status(job='deploy-4471')", f"Job still running, {i * 30 + 30}s elapsed")
+        for i in range(20)
+    ]
+
+    undeclared = warmed(encoder).run(polling)
+    declared = warmed(encoder).run(polling, idempotent_tools={"check_build_status"})
+
+    assert undeclared is not None, "the poller false trip is real without the declaration"
+    assert declared is None, "declaring it idempotent must hold the breaker closed"
+
+
+def test_the_declaration_holds_counters_rather_than_resetting_them(encoder):
+    """Hold, not reset: a poll interleaved into a real stall must not wipe the
+    evidence gathered either side of it."""
+    detector = warmed(encoder)
+    for action, observation in FIXTURES["3a_thrash_identical_errors"]["turns"][:3]:
+        detector.evaluate(action, observation)
+    before = detector.stall_hits
+    assert before > 0
+
+    detector.evaluate(
+        "check_build_status(job='x')", "Job still running, 30s elapsed", idempotent=True
+    )
+    assert detector.stall_hits == before
+
+
+def test_the_declaration_is_per_tool_not_per_trace(encoder):
+    """Only the named tool is exempt; other tools in the same trace are not."""
+    detector = warmed(encoder)
+    trace = [("grep(pattern='x')", "Error: not found")] * 8
+    assert detector.run(trace, idempotent_tools={"check_build_status"}) is not None

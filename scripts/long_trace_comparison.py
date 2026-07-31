@@ -35,7 +35,7 @@ from eval.baselines.step_cap import (  # noqa: E402
     RECURSION_LIMIT_SOURCE,
     detect as step_cap_detect,
 )
-from eval.traces import TRACES  # noqa: E402
+from eval.traces import IDEMPOTENT_TOOLS, TRACES  # noqa: E402
 from plateau.calibrator import Calibrator  # noqa: E402
 from plateau.detector import Detector, PlateauConfig  # noqa: E402
 from plateau.encoder import MiniLMEncoder  # noqa: E402
@@ -53,33 +53,42 @@ def as_baseline_turns(trace):
     ]
 
 
-def plateau_run(encoder, trace, config: PlateauConfig) -> int | None:
+def plateau_run(encoder, trace, config: PlateauConfig, idempotent=()) -> int | None:
     detector = Detector(
         encoder=encoder,
         calibrator=Calibrator(novelty_floor=config.novelty_floor),
         config=config,
     )
-    return detector.run(trace)
+    return detector.run(trace, idempotent_tools=idempotent)
 
 
 def main() -> int:
     encoder = MiniLMEncoder().load()
 
+    # Every entry takes (trace, idempotent_tools). Only `plateau_idempotent`
+    # consumes the second argument -- see the note written into metrics below.
     detectors = {
-        "plateau": lambda t: plateau_run(encoder, t, PlateauConfig()),
-        "plateau_action_only": lambda t: plateau_run(
+        "plateau": lambda t, i: plateau_run(encoder, t, PlateauConfig()),
+        # The `idempotent: true` declaration, honoured. Reported as a SEPARATE
+        # row rather than folded into `plateau`, so the table shows exactly what
+        # the declaration buys and Plateau is never credited for a mechanism the
+        # baselines were not offered.
+        "plateau_idempotent": lambda t, i: plateau_run(
+            encoder, t, PlateauConfig(), idempotent=i
+        ),
+        "plateau_action_only": lambda t, i: plateau_run(
             encoder, t, PlateauConfig(action_only=True)
         ),
-        "plateau_novelty_only": lambda t: plateau_run(
+        "plateau_novelty_only": lambda t, i: plateau_run(
             encoder, t, PlateauConfig(novelty_only=True)
         ),
-        "exact_match": lambda t: exact_match_detect(as_baseline_turns(t)),
-        "exact_args": lambda t: exact_args_detect(as_baseline_turns(t)),
-        "lexical": lambda t: lexical_detect(as_baseline_turns(t)),
-        "step_cap_25": lambda t: step_cap_detect(
+        "exact_match": lambda t, i: exact_match_detect(as_baseline_turns(t)),
+        "exact_args": lambda t, i: exact_args_detect(as_baseline_turns(t)),
+        "lexical": lambda t, i: lexical_detect(as_baseline_turns(t)),
+        "step_cap_25": lambda t, i: step_cap_detect(
             as_baseline_turns(t), recursion_limit=RECURSION_LIMIT_DOCUMENTED
         ),
-        "step_cap_10007": lambda t: step_cap_detect(
+        "step_cap_10007": lambda t, i: step_cap_detect(
             as_baseline_turns(t), recursion_limit=RECURSION_LIMIT_SOURCE
         ),
     }
@@ -99,7 +108,7 @@ def main() -> int:
         cells = ""
         for name in names:
             trace, should_trip = TRACES[name]
-            trip = run(trace)
+            trip = run(trace, IDEMPOTENT_TOOLS.get(name, frozenset()))
             row[name] = trip
             if should_trip:
                 mark = "ok" if trip is not None else "MISS"
@@ -144,9 +153,20 @@ def main() -> int:
         "encoder": encoder.fingerprint(),
         "scope_note": (
             "trace classes are hand-written and defined in eval/traces.py, not "
-            "handed down in §9; non-synthetic traces come from TRAIL (gated, "
-            "human-downloaded, never committed)"
+            "handed down in §9; non-synthetic traces are measured separately in "
+            "metrics.json -> trail_comparison"
         ),
+        "idempotent_note": (
+            "`plateau_idempotent` honours the per-tool `idempotent: true` "
+            "declaration; `plateau` does not. The declaration is made by the "
+            "tool author, not detected -- it is a deployment burden, not a "
+            "capability. It is reported as its own row because the same "
+            "exemption is available to any detector: applied to exact_args it "
+            "would remove that baseline's healthy_poller false trip too."
+        ),
+        "idempotent_tools": {
+            name: sorted(IDEMPOTENT_TOOLS.get(name, frozenset())) for name in names
+        },
         "traces": {
             name: {"turns": len(TRACES[name][0]), "should_trip": TRACES[name][1]}
             for name in names

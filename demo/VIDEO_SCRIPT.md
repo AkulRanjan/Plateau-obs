@@ -29,7 +29,7 @@ Track: AI Safety and Observability
 **On screen:** start both agents. Turns begin filling both panes.
 
 > Two laptops. Two real agents. Same model — Llama 3.1 8B running locally — same
-> seed, same task, same tools.
+> task, same tools.
 >
 > The task is one they cannot finish: find how to refresh an expired auth token.
 > The documentation is honest, and it dead-ends. Refreshing needs a client
@@ -51,8 +51,8 @@ Track: AI Safety and Observability
 > log that a monitor could alarm on. Nothing is red. That is the entire problem
 > in one column.
 >
-> By turn 22 it has spent roughly forty thousand tokens to make no progress at
-> all.
+> By the cap we imposed it has spent roughly forty-six thousand tokens to make
+> no progress at all — and it was not going to stop on its own.
 
 ---
 
@@ -64,18 +64,22 @@ screen for a beat — do not talk over them.
 > Now the right one. At turn twelve, Plateau opens the breaker.
 >
 > It reads both halves of every turn. Action similarity is one-point-zero
-> against a ceiling of **0.744** — and it *learned* that ceiling from this
-> agent's own productive turns, it is not a constant we picked. Observation
-> novelty has collapsed to zero against a floor of 0.30.
+> against a learned ceiling — and it *learned* that ceiling from this agent's
+> own productive turns, it is not a constant we picked. Observation novelty
+> has collapsed to zero against a floor of 0.25.
+>
+> **Read the ceiling and the turn number off the screen, not off this page.**
+> They move between runs — see the reproducibility note in the RUNBOOK.
 >
 > So it refuses the call, and it hands the agent back a reason and a route:
-> turn eight produced the most new information in this run. Go back to that
+> the turn that produced the most new information in this run. Go back to that
 > instead of re-asking.
 >
-> Fifteen turns executed. Seven refused. And here is the number I like most:
-> **fifteen encoder calls, not twenty-two.** While the breaker is open, Plateau
-> does no work at all. A tripped breaker is free — so leaving it tripped costs
-> nothing.
+> And here is the number I like most: **encoder calls equals turns executed,**
+> not turns attempted. While the breaker is open, Plateau does no work at all.
+> A tripped breaker is free — so leaving it tripped costs nothing.
+>
+> That invariant held on every run, on both machines. The turn numbers did not.
 
 ---
 
@@ -98,17 +102,23 @@ screen for a beat — do not talk over them.
 
 **On screen:** the measured long-traces table. Do not rush this.
 
-> Two things we measured that go against us.
+> Three things we measured that go against us.
 >
-> Plateau trips here because the search tool returns the same "no results"
-> string every time — which is what a real search API does. When we varied the
-> wording, our own encoder scored those non-answers as *new information*, and
-> Plateau missed the stall entirely. The semantic-paraphrase claim is unproven,
-> and it is in our repo in writing.
+> First, we found the reworded-stall miss ourselves and it turned out not to be
+> a threshold problem at all. Our comparison window was eight turns, and it was
+> the one parameter we had never swept. A loop longer than the window is
+> invisible — the detector cannot see a repetition it has no memory of. At
+> sixteen we catch it. Of five parameters, that is the *only* one that changes
+> the outcome; the four we spent weeks tuning do not.
 >
-> On our long traces a 2019-era token-overlap baseline matches our recall with
-> fewer false trips. What we do have is this: LangGraph's step cap false-trips a
-> healthy sixty-one turn batch job at turn twenty-seven. Plateau holds.
+> Second, a 2019-era token-overlap baseline still detects sooner than we do —
+> eight turns against our thirteen-point-seven. If you are counting tokens
+> burned before the breaker opens, it beats us on every trace it can see. What
+> it cannot see is the reworded stall, which it misses completely.
+>
+> Third, our zero false-trip rate depends on the tool author declaring polling
+> tools idempotent. That is work we hand to whoever installs this. Forget it and
+> a healthy poller trips at turn ten.
 >
 > Nobody else in this space publishes their false-trip rate. We do.
 
@@ -129,7 +139,11 @@ Team ABCD · github.com/AkulRanjan/Plateau-obs
 - **Do not talk over the trip.** Two seconds of silence when the REFUSED lines
   appear is worth more than another sentence.
 - **Read numbers off the screen.** If a take gives turn 11 instead of 12, say
-  eleven. Never read a number the viewer cannot see.
+  eleven. Never read a number the viewer cannot see. This is not caution: the
+  model is 5.9 GB against a 6 GB card, so ollama splits it across CPU and GPU
+  and the split moves between runs. Different arithmetic, different sampled
+  token, different trip turn — even at temperature 0 with a fixed seed. Check
+  `ollama ps` before believing any specific turn.
 - The honest section is not a disclaimer, it is the pitch. Deliver it at the
   same pace as everything else — no apology in the voice.
 - If asked "why not just cap the steps": that is the LangGraph row. It fires

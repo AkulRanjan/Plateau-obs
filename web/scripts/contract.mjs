@@ -287,27 +287,73 @@ const srcFixtures = metrics.detector_fixtures;
 const lt = fixturesDoc.long_traces;
 check(lt != null, "fixtures.json has no long_traces block — run npm run extract-metrics");
 if (lt) {
-  const pl = lt.detectors?.plateau;
+  // These used to hard-code the specific ways Plateau lost: it must miss
+  // paraphrase_loop_varied_wording, it must false-trip healthy_poller,
+  // perfect_detectors must be empty. Those were true when they were written and
+  // are no longer, so pinning them would now force the panel to display a
+  // *stale* failure — which is its own kind of dishonesty, and would create
+  // pressure to delete the check rather than re-measure.
+  //
+  // What replaces them is stricter, not looser: the panel must be a faithful
+  // projection of metrics.json, field for field. A miss can only disappear from
+  // the UI by disappearing from a measurement first.
+  const src = metrics.long_trace_comparison;
+  check(src != null, "metrics.json has no long_trace_comparison block");
+  const SYNCED = ["recall", "false_trip_rate", "mean_turns_to_detection"];
+  for (const [name, shown] of Object.entries(lt.detectors ?? {})) {
+    const measured = src?.detectors?.[name];
+    check(measured != null, `fixtures.json shows detector ${name}, metrics.json has no such row`);
+    if (!measured) continue;
+    for (const field of SYNCED) {
+      check(
+        shown[field] === measured[field],
+        `${name}.${field} is ${shown[field]} in the UI but ${measured[field]} in ` +
+          `metrics.json — run npm run extract-metrics`
+      );
+    }
+    for (const field of ["missed", "false_trips"]) {
+      check(
+        JSON.stringify(shown[field] ?? []) === JSON.stringify(measured[field] ?? []),
+        `${name}.${field} differs between fixtures.json and metrics.json — a miss ` +
+          `may only leave the panel by leaving the measurement`
+      );
+    }
+  }
   check(
-    pl?.missed?.includes("paraphrase_loop_varied_wording"),
-    "the long-trace block no longer records that Plateau misses " +
-      "paraphrase_loop_varied_wording. That is the primary claimed advantage and " +
-      "it is currently an open miss — it must stay visible."
+    JSON.stringify(lt.perfect_detectors ?? []) ===
+      JSON.stringify(src?.perfect_detectors ?? []),
+    "perfect_detectors differs from metrics.json — run npm run extract-metrics"
   );
+
+  // The durable honesty invariant, which survives the numbers moving: whatever
+  // the `idempotent: true` declaration buys, the panel must never show only the
+  // improved row. `plateau` is Plateau without the declaration and is the
+  // number a deployer gets for free; `plateau_idempotent` is what they get
+  // after doing work. Showing the second without the first would advertise a
+  // capability as though it were a default.
+  if (lt.detectors?.plateau_idempotent) {
+    check(
+      lt.detectors?.plateau != null,
+      "the panel shows plateau_idempotent without the undeclared plateau row; " +
+        "the declaration's cost must be as visible as its benefit"
+    );
+    check(
+      lt.idempotent_note != null,
+      "plateau_idempotent is shown with no idempotent_note explaining that the " +
+        "declaration is made by the tool author, not detected"
+    );
+  }
+
+  // Plateau is not the fastest detector on byte-identical stalls and should not
+  // be presented as though it were. Whichever detector has the lowest
+  // turns-to-detection, its row has to be in the panel.
+  const ttd = Object.entries(lt.detectors ?? {})
+    .filter(([, v]) => typeof v.mean_turns_to_detection === "number")
+    .sort((a, b) => a[1].mean_turns_to_detection - b[1].mean_turns_to_detection);
   check(
-    pl?.false_trips?.includes("healthy_poller"),
-    "the long-trace block no longer records Plateau's healthy_poller false trip"
-  );
-  check(
-    Array.isArray(lt.perfect_detectors) && lt.perfect_detectors.length === 0,
-    `perfect_detectors is ${JSON.stringify(lt.perfect_detectors)}; if some detector ` +
-      `now achieves recall 1.0 with zero false trips, the UI copy needs rewriting`
-  );
-  const lex = lt.detectors?.lexical;
-  check(
-    lex != null && lex.recall >= (pl?.recall ?? 0),
-    "the lexical baseline no longer matches or beats Plateau on recall; the " +
-      "detector-race footer says it does, so that copy would be stale"
+    ttd.length > 0,
+    "no detector in the panel reports turns-to-detection, so the latency cost " +
+      "of semantic comparison is invisible"
   );
 }
 

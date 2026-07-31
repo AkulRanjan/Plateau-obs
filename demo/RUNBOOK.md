@@ -112,8 +112,8 @@ latency normal, every dashboard green — and the agent has learned nothing sinc
 turn 10. The only thing that eventually notices is the bill.
 
 **The right pane is the product.** Plateau reads both halves of every turn.
-At turn 11 novelty has collapsed to 0.000 against a floor of 0.30 while action
-similarity sits at 1.000 against a *learned* ceiling of 0.872 — it calibrated
+At the trip, novelty has collapsed to 0.000 against a floor of 0.25 while action
+similarity sits at 1.000 against a *learned* ceiling around 0.76 — it calibrated
 that ceiling from this agent's own productive turns. It refuses, hands back the
 reason, and points at turn 4 as the last thing that actually produced
 information.

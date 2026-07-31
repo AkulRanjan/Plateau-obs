@@ -94,6 +94,11 @@ const longTraces = lt
         ])
       ),
       perfect_detectors: lt.perfect_detectors ?? [],
+      // The `idempotent: true` declaration is a burden the deployer carries,
+      // not a capability Plateau has. Carried through so the panel can never
+      // show what the declaration buys without also saying what it costs.
+      idempotent_note: lt.idempotent_note ?? null,
+      idempotent_tools: lt.idempotent_tools ?? null,
     }
   : null;
 

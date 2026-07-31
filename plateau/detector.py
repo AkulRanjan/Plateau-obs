@@ -56,6 +56,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
+from typing import Collection
 
 import numpy as np
 
@@ -73,6 +74,28 @@ TRIP_AFTER_STALL = 6
 #: Value `action_sim` is pinned to under the novelty_only ablation. Below
 #: HARD_LO, so `confident` can never be true.
 NOVELTY_ONLY_ACTION_SIM = 0.0
+
+#: How many previous turns each dial is measured against.
+#:
+#: Both dials are `max_cosine` against this window, so a repetition spaced
+#: further apart than `window_size` is structurally invisible: the detector
+#: cannot see a loop whose period exceeds its own memory. `plateau.breaker`
+#: imports this so the live breaker and the evaluated detector cannot drift.
+#:
+#: Was hard-coded to 8 and swept by nothing. `metrics.json ->
+#: long_trace_sweep` now measures it, and it is **the only load-bearing axis of
+#: the five**: 432 of 576 configurations are usable, and all 144 failures are
+#: exactly the window_size=8 ones. Every value of novelty_floor, k_sigma,
+#: trip_after_loop and trip_after_stall is usable. The four parameters that were
+#: swept do not change the outcome; the one that was not swept decides it.
+#:
+#: The usable set is {12, 16, 24}. 16 is taken rather than 12 because the trace
+#: that discriminates cycles 12 phrasings, so a window of exactly 12 sits on the
+#: boundary and would be a coincidence of that fixture rather than a margin.
+#: STILL PROVISIONAL: no measurement here says what a *real* agent's rewording
+#: repertoire is, which is what this value has to exceed. See
+#: metrics.json -> trail_comparison.
+WINDOW_SIZE = 16
 
 
 class Quadrant(str, Enum):
@@ -129,6 +152,7 @@ class PlateauConfig:
     novelty_floor: float = NOVELTY_FLOOR
     trip_after_loop: int = TRIP_AFTER_LOOP
     trip_after_stall: int = TRIP_AFTER_STALL
+    window_size: int = WINDOW_SIZE
     action_only: bool = False
     novelty_only: bool = False
 
@@ -168,12 +192,18 @@ class Detector:
         encoder,
         calibrator: Calibrator | None = None,
         config: PlateauConfig | None = None,
-        window_size: int = 8,
+        window_size: int | None = None,
     ) -> None:
         self.encoder = encoder
         self.config = config or PlateauConfig()
         self.calibrator = calibrator if calibrator is not None else Calibrator(
             novelty_floor=self.config.novelty_floor
+        )
+        # The config owns the window so the sweep can vary it; the kwarg stays
+        # as an explicit per-instance override for callers that build a Detector
+        # without a config.
+        window_size = (
+            self.config.window_size if window_size is None else window_size
         )
         self.window_size = window_size
         self._action_vecs: deque[np.ndarray] = deque(maxlen=window_size)
@@ -211,19 +241,37 @@ class Detector:
     # -- the predicate --------------------------------------------------------
 
     def classify(
-        self, action_sim: float, obs_novelty: float, calibrator: Calibrator
+        self,
+        action_sim: float,
+        obs_novelty: float,
+        calibrator: Calibrator,
+        idempotent: bool = False,
     ) -> Reading:
         """Apply the §6 predicate and advance the hit counters.
 
         Called once per turn -- by :meth:`evaluate`, or by the breaker as its §6
         seam. Calling it twice for one turn would double-count.
+
+        ``idempotent`` is the declaration the caller makes about the *tool*, not
+        about this turn. A tool that legitimately returns near-identical
+        observations -- a poller, a clock, a status endpoint -- is
+        informationally stalled by construction, and the measured novelty
+        distribution shows pollers (0.0067-0.2311) overlapping the loop band, so
+        no floor can separate the two. The turn is still embedded, still
+        labelled, and still enters the window; it simply carries **no evidence
+        either way**, so the counters are neither advanced nor reset.
+
+        This is a burden on the caller, not a detection. Plateau does not solve
+        the poller case -- it requires the tool author to declare it.
         """
         action_sim, obs_novelty = self._apply_ablation(action_sim, obs_novelty)
 
         stagnant = obs_novelty < self.config.novelty_floor
         confident = action_sim >= calibrator.sim_ceiling
 
-        if stagnant and confident:
+        if idempotent:
+            pass  # No evidence in either direction. Hold, do not reset.
+        elif stagnant and confident:
             self.loop_hits += 1
             self.stall_hits += 1
         elif stagnant:
@@ -259,7 +307,12 @@ class Detector:
 
     # -- standalone entry point -----------------------------------------------
 
-    def evaluate(self, action_text: str, observation_text: str) -> Reading:
+    def evaluate(
+        self,
+        action_text: str,
+        observation_text: str,
+        idempotent: bool = False,
+    ) -> Reading:
         """Embed one turn, read both dials, label it, advance the window.
 
         One encoder call per turn: both halves go through in a single batch.
@@ -268,7 +321,9 @@ class Detector:
         action_vec, obs_vec = vecs[0], vecs[1]
 
         action_sim, obs_novelty = self.dials(action_vec, obs_vec)
-        reading = self.classify(action_sim, obs_novelty, self.calibrator)
+        reading = self.classify(
+            action_sim, obs_novelty, self.calibrator, idempotent=idempotent
+        )
 
         # The gate applies here too: only informative turns teach the baseline.
         self.calibrator.update(action_sim=action_sim, obs_novelty=obs_novelty)
@@ -279,14 +334,22 @@ class Detector:
         self.readings.append(reading)
         return reading
 
-    def run(self, turns) -> int | None:
+    def run(self, turns, idempotent_tools: Collection[str] = ()) -> int | None:
         """Evaluate a whole trace. Returns the 0-indexed trip turn, or None.
 
         Matches the baselines' ``detect(turns) -> int | None`` contract so the
         harness can treat Plateau and the ported detectors identically.
+
+        ``idempotent_tools`` names the tools whose turns carry no evidence -- see
+        :meth:`classify`. The tool name is the action string up to its first
+        ``(``, the same convention the baseline adapter uses.
         """
+        idempotent_tools = frozenset(idempotent_tools)
         for action_text, observation_text in turns:
-            if self.evaluate(action_text, observation_text).is_trip:
+            idempotent = action_text.split("(")[0] in idempotent_tools
+            if self.evaluate(
+                action_text, observation_text, idempotent=idempotent
+            ).is_trip:
                 return self._turn_index - 1
         return None
 

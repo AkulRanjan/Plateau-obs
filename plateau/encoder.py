@@ -192,17 +192,35 @@ class MiniLMEncoder:
     def fingerprint(self) -> dict[str, object]:
         """Provenance block for metrics.json.
 
-        Includes a hash of a fixed probe vector: if weights or numerics ever
-        change underneath us, this value moves and the determinism claim fails
-        loudly instead of silently.
+        Two hashes of the same fixed probe vector, because one was not enough to
+        tell two very different failures apart.
+
+        ``probe_sha256`` hashes the raw float32 bytes. It is exact, and that is
+        both its value and its flaw: SHA-256 turns a one-ULP difference into a
+        completely unrelated digest. Measured across this repo's two development
+        machines, the raw hash differs (024c4c5f... vs aaca066b...) while the
+        published cosines differ by at most 1e-6 and every figure quoted at four
+        decimal places is identical. The exact hash was therefore reporting
+        reproducible results as unreproducible, which is the failure mode most
+        likely to get a determinism check switched off.
+
+        ``probe_sha256_round6`` hashes the vector rounded to six decimals. It
+        survives last-bit float noise from a different CPU or BLAS, and still
+        moves if the weights, the revision or the pooling ever change -- which
+        is the drift the check exists to catch.
+
+        Both are recorded. Neither is dropped: an exact match is still the
+        strongest signal available, it just is not the only meaningful one.
         """
         probe = self.encode_one("plateau determinism probe")
+        rounded = np.round(probe.astype(np.float64), 6)
         return {
             "model_id": self.model_id,
             "revision": self.revision,
             "dim": ENCODER_DIM,
             "seed": SEED,
             "probe_sha256": hashlib.sha256(probe.tobytes()).hexdigest(),
+            "probe_sha256_round6": hashlib.sha256(rounded.tobytes()).hexdigest(),
         }
 
 

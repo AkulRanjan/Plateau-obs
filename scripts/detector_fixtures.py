@@ -34,6 +34,7 @@ sys.path.insert(0, str(ROOT))
 
 os.environ["HF_HUB_OFFLINE"] = "1"
 
+from eval.traces import PRODUCTIVE_PREAMBLE  # noqa: E402
 from plateau.calibrator import NOVELTY_FLOOR, Calibrator  # noqa: E402
 from plateau.detector import Detector, PlateauConfig  # noqa: E402
 from plateau.encoder import MiniLMEncoder  # noqa: E402
@@ -41,30 +42,60 @@ from plateau.encoder import MiniLMEncoder  # noqa: E402
 # A productive preamble: varied actions, each returning genuinely new information.
 # This is what a healthy agent looks like, and it is what the calibrator learns
 # "normal" from.
-PREAMBLE = [
-    ("list_dir(path='src/')", "src/: auth.py, config.py, models.py, utils.py, api.py"),
-    ("read_file(f='src/auth.py')", "def refresh_token(client_id, secret): expires_in=3600"),
-    ("grep(pattern='TOKEN_TTL')", "src/config.py:14: TOKEN_TTL = 3600  # seconds"),
-    ("read_file(f='src/config.py')", "TOKEN_TTL=3600, RATE_LIMIT=100, GATEWAY='api.internal'"),
-    ("run_tests(suite='auth')", "12 passed, 1 failed: test_refresh_rotates_secret"),
-    ("read_file(f='tests/test_auth.py')", "assert new_secret != old_secret  # line 88"),
-]
+#
+# Imported, not copied. This module and eval/traces.py each used to carry their
+# own byte-identical list, so the §6 fixtures and the long traces could silently
+# calibrate against different preambles.
+PREAMBLE = PRODUCTIVE_PREAMBLE
 
 FIXTURES = {
+    # LENGTHENED. Both this fixture and the counter-demo below ran 2 turns, and
+    # turn 0 is not stagnant (novelty 0.8974 -- the non-answer is novel against
+    # the *preamble*). So loop_hits peaked at 1 and no threshold in the grid,
+    # which starts at trip_after_loop=2, could ever fire. The sweep's "0 usable
+    # configurations out of 144" was measuring fixture length, not the design.
+    #
+    # Both fixtures were lengthened to 6 turns, deliberately together: extending
+    # only the positive one buys recall for free and would make the sweep say
+    # more than it knows. The counter-demo has to be tested at equal depth.
+    #
+    # Wordings come from eval.traces._PARAPHRASES, the same pool the 61-turn
+    # long trace draws from, rather than being invented here.
     "1_paraphrase_loop": {
         "expect": "loop",
+        # Now that it is long enough to trip, it is pinned on the trip turn
+        # rather than only on its final label. Turn 0 is not stagnant -- the
+        # non-answer is novel against the preamble -- so the first stagnant turn
+        # is 1 and TRIP_AFTER_LOOP=3 lands on turn 3.
+        "expect_trip": True,
+        "expect_trip_turn": 3,
         "note": "same intent reworded, identical results returned",
         "turns": [
             ("search_docs(q='auth token refresh')", "No relevant results found."),
             ("search_docs(q='how do I refresh a token')", "No relevant results found."),
+            ("search_docs(q='refreshing auth tokens')", "No relevant results found."),
+            ("search_docs(q='token refresh procedure')", "No relevant results found."),
+            ("search_docs(q='refresh the auth token')", "No relevant results found."),
+            ("search_docs(q='auth refresh flow')", "No relevant results found."),
         ],
     },
     "2_invoice_batch_grind": {
         "expect": "grind",
+        # The counter-demo now runs as long as the loop fixture, so "does not
+        # trip" is a claim about six turns rather than about two, and is pinned
+        # as such.
+        "expect_trip": False,
         "note": "COUNTER-DEMO: near-identical actions, genuinely different records",
+        # The first two turns are the gate-1 measured pair (action_sim 0.9913,
+        # obs_novelty 0.4392) and are kept verbatim. The other four continue the
+        # same batch in the same format: a genuinely new record every turn.
         "turns": [
             ("extract_text(f='invoice_041.pdf')", "ACME Corp, Rs 84,200, due Aug 12"),
             ("extract_text(f='invoice_042.pdf')", "Vertex Ltd, Rs 19,750, due Aug 30"),
+            ("extract_text(f='invoice_043.pdf')", "Bluewave Systems, Rs 112,400, due Sep 04"),
+            ("extract_text(f='invoice_044.pdf')", "Orchid Traders, Rs 47,900, due Sep 18"),
+            ("extract_text(f='invoice_045.pdf')", "Northgate Supply, Rs 203,150, due Oct 02"),
+            ("extract_text(f='invoice_046.pdf')", "Quanta Metals, Rs 66,325, due Oct 21"),
         ],
     },
     "3a_thrash_identical_errors": {

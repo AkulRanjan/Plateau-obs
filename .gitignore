@@ -20,6 +20,8 @@ build/
 dist/
 .venv/
 venv/
+# The pinned-stack interpreter built by the recipe scripts/check_env.py prints.
+.venv-pinned/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/

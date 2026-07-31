@@ -32,12 +32,13 @@ import dataclasses
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Protocol, Sequence
+from typing import Protocol, Sequence
 
 import numpy as np
 
 from plateau.calibrator import Calibrator
-from plateau.detector import Quadrant, Reading
+from plateau.detector import WINDOW_SIZE as DETECTOR_WINDOW_SIZE
+from plateau.detector import Reading
 from plateau.encoder import max_cosine
 from plateau.escape import EscapeTracker
 
@@ -48,7 +49,11 @@ from plateau.escape import EscapeTracker
 #: is True, and this degenerates to 1. It stays a parameter so a test can force
 #: multi-reading behaviour when exercising row 3.
 TRIP_AFTER = 1
-WINDOW_SIZE = 8
+#: Re-exported from §6, never re-declared. The breaker's window and the
+#: detector's window measure the same thing against the same trace; if they
+#: disagree, the live demo behaves differently from every number in
+#: metrics.json, and nothing in the test suite would catch it.
+WINDOW_SIZE = DETECTOR_WINDOW_SIZE
 COOLDOWN_TURNS = 1
 
 # --- UNSPECIFIED IN §5/§8. Provisional; awaiting a decision. ------------------

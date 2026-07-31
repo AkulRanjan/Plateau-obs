@@ -6,7 +6,7 @@
     "dim": 384,
     "seed": 1337
   },
-  "novelty_floor": 0.3,
+  "novelty_floor": 0.25,
   "novelty_floor_status": "PROVISIONAL, pending sweep",
   "preamble_turns": 6,
   "all_passed": true,
@@ -25,7 +25,7 @@
       "note": "same intent reworded, identical results returned",
       "final_quadrant": "loop",
       "console_quadrant": "stuck",
-      "trip_turn": null,
+      "trip_turn": 3,
       "passed": true,
       "preamble_turns": 6,
       "sim_ceiling": 0.7863,
@@ -43,6 +43,34 @@
           "quadrant": "loop",
           "console_quadrant": "stuck",
           "is_trip": false
+        },
+        {
+          "action_sim": 0.9756,
+          "obs_novelty": 0,
+          "quadrant": "loop",
+          "console_quadrant": "stuck",
+          "is_trip": false
+        },
+        {
+          "action_sim": 0.9065,
+          "obs_novelty": 0,
+          "quadrant": "loop",
+          "console_quadrant": "stuck",
+          "is_trip": true
+        },
+        {
+          "action_sim": 0.9931,
+          "obs_novelty": 0,
+          "quadrant": "loop",
+          "console_quadrant": "stuck",
+          "is_trip": true
+        },
+        {
+          "action_sim": 0.9078,
+          "obs_novelty": 0,
+          "quadrant": "loop",
+          "console_quadrant": "stuck",
+          "is_trip": true
         }
       ]
     },
@@ -68,6 +96,34 @@
         {
           "action_sim": 0.9913,
           "obs_novelty": 0.4392,
+          "quadrant": "grind",
+          "console_quadrant": "batch",
+          "is_trip": false
+        },
+        {
+          "action_sim": 0.9864,
+          "obs_novelty": 0.6123,
+          "quadrant": "grind",
+          "console_quadrant": "batch",
+          "is_trip": false
+        },
+        {
+          "action_sim": 0.9822,
+          "obs_novelty": 0.5234,
+          "quadrant": "grind",
+          "console_quadrant": "batch",
+          "is_trip": false
+        },
+        {
+          "action_sim": 0.9797,
+          "obs_novelty": 0.461,
+          "quadrant": "grind",
+          "console_quadrant": "batch",
+          "is_trip": false
+        },
+        {
+          "action_sim": 0.9777,
+          "obs_novelty": 0.4754,
           "quadrant": "grind",
           "console_quadrant": "batch",
           "is_trip": false
@@ -174,7 +230,7 @@
     }
   ],
   "long_traces": {
-    "scope_note": "trace classes are hand-written and defined in eval/traces.py, not handed down in §9; non-synthetic traces come from TRAIL (gated, human-downloaded, never committed)",
+    "scope_note": "trace classes are hand-written and defined in eval/traces.py, not handed down in §9; non-synthetic traces are measured separately in metrics.json -> trail_comparison",
     "traces": {
       "runaway_paraphrase_loop": {
         "turns": 61,
@@ -199,21 +255,33 @@
     },
     "detectors": {
       "plateau": {
-        "recall": 0.6666666666666666,
+        "recall": 1,
         "false_trip_rate": 0.5,
-        "mean_turns_to_detection": 10.5,
-        "missed": [
-          "paraphrase_loop_varied_wording"
-        ],
+        "mean_turns_to_detection": 13.67,
+        "missed": [],
         "false_trips": [
           "healthy_poller"
         ],
         "detection_turn_index": {
           "runaway_paraphrase_loop": 9,
-          "paraphrase_loop_varied_wording": null,
+          "paraphrase_loop_varied_wording": 20,
           "healthy_invoice_batch": null,
           "unreachable_target": 12,
-          "healthy_poller": 9
+          "healthy_poller": 10
+        }
+      },
+      "plateau_idempotent": {
+        "recall": 1,
+        "false_trip_rate": 0,
+        "mean_turns_to_detection": 13.67,
+        "missed": [],
+        "false_trips": [],
+        "detection_turn_index": {
+          "runaway_paraphrase_loop": 9,
+          "paraphrase_loop_varied_wording": 20,
+          "healthy_invoice_batch": null,
+          "unreachable_target": 12,
+          "healthy_poller": null
         }
       },
       "plateau_action_only": {
@@ -234,21 +302,19 @@
         }
       },
       "plateau_novelty_only": {
-        "recall": 0.6666666666666666,
+        "recall": 1,
         "false_trip_rate": 0.5,
-        "mean_turns_to_detection": 12,
-        "missed": [
-          "paraphrase_loop_varied_wording"
-        ],
+        "mean_turns_to_detection": 15.67,
+        "missed": [],
         "false_trips": [
           "healthy_poller"
         ],
         "detection_turn_index": {
           "runaway_paraphrase_loop": 12,
-          "paraphrase_loop_varied_wording": null,
+          "paraphrase_loop_varied_wording": 23,
           "healthy_invoice_batch": null,
           "unreachable_target": 12,
-          "healthy_poller": 12
+          "healthy_poller": 13
         }
       },
       "exact_match": {
@@ -343,6 +409,18 @@
         }
       }
     },
-    "perfect_detectors": []
+    "perfect_detectors": [
+      "plateau_idempotent"
+    ],
+    "idempotent_note": "`plateau_idempotent` honours the per-tool `idempotent: true` declaration; `plateau` does not. The declaration is made by the tool author, not detected -- it is a deployment burden, not a capability. It is reported as its own row because the same exemption is available to any detector: applied to exact_args it would remove that baseline's healthy_poller false trip too.",
+    "idempotent_tools": {
+      "runaway_paraphrase_loop": [],
+      "paraphrase_loop_varied_wording": [],
+      "healthy_invoice_batch": [],
+      "unreachable_target": [],
+      "healthy_poller": [
+        "check_build_status"
+      ]
+    }
   }
 }

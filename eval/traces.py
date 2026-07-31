@@ -94,9 +94,12 @@ HEALTHY_INVOICE_BATCH = PRODUCTIVE_PREAMBLE + [
     for i, vendor in enumerate(_VENDORS)
 ]
 
-#: A healthy poller. Documented as a KNOWN FALSE TRIP: a poller is genuinely
-#: informationally stalled, so no floor separates it from a loop. This is what
-#: the required `idempotent: true` declaration exists for.
+#: A healthy poller. A poller is genuinely informationally stalled, so no floor
+#: separates it from a loop -- the measured novelty distribution has pollers at
+#: 0.0067-0.2311, inside the loop band. This is what the required
+#: `idempotent: true` declaration exists for, and it is declared in
+#: IDEMPOTENT_TOOLS below. Without that declaration this trace is a standing
+#: false trip, which is exactly the point: the burden is on the caller.
 HEALTHY_POLLER = PRODUCTIVE_PREAMBLE + [
     (
         "check_build_status(job='deploy-4471')",
@@ -168,6 +171,16 @@ TRACES: dict[str, tuple[list[tuple[str, str]], bool]] = {
     "healthy_invoice_batch": (HEALTHY_INVOICE_BATCH, False),
     "unreachable_target": (UNREACHABLE_TARGET, True),
     "healthy_poller": (HEALTHY_POLLER, False),
+}
+
+#: name -> the tools that trace declares `idempotent: true`.
+#:
+#: Kept as a separate mapping rather than a third tuple element so the
+#: `(trace, should_trip)` shape every existing consumer unpacks stays intact.
+#: A trace absent from this mapping declares nothing, which is the default and
+#: the unsafe case.
+IDEMPOTENT_TOOLS: dict[str, frozenset[str]] = {
+    "healthy_poller": frozenset({"check_build_status"}),
 }
 
 #: Turn index at which the productive preamble ends and the class begins.
