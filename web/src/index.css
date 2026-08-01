@@ -6,27 +6,40 @@
  * CSS vars (var(--color-cyan)) for the SVG layer below.
  * ------------------------------------------------------------------------ */
 @theme {
-  --color-bg: #0a1417;
-  --color-bg2: #0e1e23;
-  --color-surface: #11272e;
-  --color-line: #1c3b44;
-  --color-line-soft: #16323a;
+  /* PAPER INSTRUMENT PALETTE.
+   *
+   * The console and the live collector dashboard are now one product, so both
+   * are set on chart stock: this is a two-pen strip-chart recorder, which is
+   * literally what Plateau emits — two traces against a printed threshold.
+   *
+   * The token NAMES are historical (cyan/violet/red date from the dark draft)
+   * and are deliberately left alone: every component and the contrast checker
+   * reference them by name, and renaming them buys nothing before a demo. Read
+   * them as pen-1 / pen-2 / signal.
+   */
+  --color-bg: #dcd7c9;        /* the desk */
+  --color-bg2: #e4e0d5;
+  --color-surface: #e4e1d7;   /* inset wells */
+  --color-line: #1c1b18;      /* ink rule — panel edges */
+  --color-line-soft: #bdb7a6; /* printed grid */
 
-  --color-ink: #e6f1f3;
-  --color-muted: #88a6af;
-  /* Lightened from the draft's #5a7982, which measured 3.32-3.99:1 against
-   * these surfaces — below the 4.5:1 bar for small text, and this token carries
-   * turn indices, axis labels and captions at 8.5-11px. #7b949b measures
-   * 4.84:1 at worst while staying a clear step below --color-muted.
+  --color-ink: #1c1b18;       /* plotter ink */
+  --color-muted: #4f4b42;
+  /* Was lightened for the dark draft; on paper the same job needs darkening.
+   * This token carries turn indices, axis labels and captions at 8.5-11px, so
+   * it is held at a measured 4.5:1 against every surface it sits on.
    * Enforced by scripts/contrast.mjs. */
-  --color-faint: #7b949b;
+  --color-faint: #5b5750;
 
-  --color-cyan: #25e0c8;
-  --color-violet: #9e86ff;
-  --color-amber: #f5b23d;
-  --color-red: #ff5a47;
+  --color-cyan: #0c6047;      /* pen 2 — novelty, productive, CLOSED */
+  --color-violet: #1b4b8f;    /* pen 1 — action similarity, batch */
+  --color-amber: #704c08;     /* learned ceiling, grind */
+  --color-red: #a81f18;       /* threshold, refusals, alarm */
 
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  /* Condensed for legends, mono for every number — the same pairing the
+   * collector dashboard uses, from stacks present on both laptops. */
+  --font-display: "Helvetica Neue Condensed", "Arial Narrow", "Nimbus Sans Narrow",
+    "DejaVu Sans Condensed", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
@@ -37,8 +50,8 @@
  * GPUs. */
 :root {
   --accent: var(--color-cyan);
-  --bg-glass: #0f2228;
-  --bg-glass-blur: color-mix(in srgb, #0f2228 82%, transparent);
+  --bg-glass: #ebe8df;
+  --bg-glass-blur: color-mix(in srgb, #ebe8df 90%, transparent);
 }
 
 html,
@@ -78,7 +91,7 @@ body {
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
-    background: radial-gradient(120% 80% at 50% -10%, #123039 0%, var(--color-bg) 55%);
+    background: radial-gradient(120% 80% at 50% -10%, #e3dece 0%, var(--color-bg) 60%);
   }
 
   .pl-aurora-blob {
@@ -96,7 +109,7 @@ body {
     opacity: 0.55;
     background: radial-gradient(
       closest-side,
-      color-mix(in srgb, var(--color-cyan) 24%, transparent),
+      color-mix(in srgb, var(--color-cyan) 7%, transparent),
       transparent
     );
   }
@@ -106,7 +119,7 @@ body {
     opacity: 0.4;
     background: radial-gradient(
       closest-side,
-      color-mix(in srgb, var(--color-violet) 22%, transparent),
+      color-mix(in srgb, var(--color-violet) 6%, transparent),
       transparent
     );
   }
@@ -116,7 +129,7 @@ body {
     opacity: 0.32;
     background: radial-gradient(
       closest-side,
-      color-mix(in srgb, #1d7f8c 30%, transparent),
+      color-mix(in srgb, #8a8477 14%, transparent),
       transparent
     );
   }
@@ -141,11 +154,10 @@ body {
     position: absolute;
     inset: 0;
     display: block;
-    opacity: 0.4;
-    background-image: linear-gradient(var(--color-line-soft) 1px, transparent 1px),
-      linear-gradient(90deg, var(--color-line-soft) 1px, transparent 1px);
-    background-size: 32px 32px;
-    mask-image: radial-gradient(120% 90% at 50% 0%, #000 30%, transparent 80%);
+    opacity: 0.9;
+    background-image: linear-gradient(#c6c0ae 0.5px, transparent 0.5px),
+      linear-gradient(90deg, #c6c0ae 0.5px, transparent 0.5px);
+    background-size: 26px 26px;
   }
 
   /* ----------------------------------------------------------------- panel --
@@ -155,9 +167,11 @@ body {
   .pl-panel {
     position: relative;
     background: var(--bg-glass);
-    border: 1px solid var(--color-line-soft);
-    border-radius: 14px;
+    border: 1px solid var(--color-line);
+    border-color: var(--color-line);
+    border-radius: 2px;
     padding: 18px;
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--color-line) 12%, transparent);
   }
 
   .pl-panel--blur {
@@ -172,7 +186,6 @@ body {
    * ------------------------------------------------------------------------ */
   .pl-led {
     background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
     animation: pl-pulse 1.6s ease-in-out infinite;
   }
 
@@ -196,7 +209,7 @@ body {
   /* The accumulated-novelty curve. Motion owns its pathLength. */
   .pl-line {
     stroke: var(--accent);
-    stroke-width: 2.5;
+    stroke-width: 2;
     stroke-linejoin: round;
     stroke-linecap: round;
   }
@@ -235,7 +248,7 @@ body {
    * drop-shadow. Per-frame SVG filters stack and are the single most expensive
    * thing in this view. */
   .pl-glow {
-    filter: drop-shadow(0 0 6px currentColor);
+    filter: none;
   }
 }
 

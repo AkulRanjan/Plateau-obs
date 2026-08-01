@@ -60,7 +60,7 @@ export default function InfoTip({ label, children }) {
             ref={refs.setFloating}
             style={floatingStyles}
             {...getFloatingProps()}
-            className="z-50 max-w-[320px] rounded-lg border border-line bg-[#0c1d22] px-3 py-2.5 font-mono text-[10.5px] leading-relaxed text-muted shadow-[0_18px_40px_-18px_#000]"
+            className="z-50 max-w-[320px] rounded-lg border border-line bg-[#d3cfc2] px-3 py-2.5 font-mono text-[10.5px] leading-relaxed text-muted shadow-[0_14px_30px_-16px_#1c1b18]"
           >
             {children}
           </div>
