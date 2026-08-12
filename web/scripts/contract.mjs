@@ -12,15 +12,20 @@
  *   npm run contract
  */
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const { deriveState, TRIP_TURN } = await import(
-  resolve(HERE, "../src/lib/deriveState.js")
-);
-const { TRACE, STEP_CAP, TOKENS_PER_TURN, NOVELTY_FLOOR } = await import(
-  resolve(HERE, "../src/data/trace.js")
+
+// `import()` of an absolute path is a URL, not a path. On POSIX the two happen
+// to coincide; on Windows `resolve()` returns `C:\...` and the ESM loader
+// rejects it as an unsupported `c:` scheme, so `npm run check` could not run on
+// Windows at all. pathToFileURL is the portable spelling.
+const importLocal = (rel) => import(pathToFileURL(resolve(HERE, rel)).href);
+
+const { deriveState, TRIP_TURN } = await importLocal("../src/lib/deriveState.js");
+const { TRACE, STEP_CAP, TOKENS_PER_TURN, NOVELTY_FLOOR } = await importLocal(
+  "../src/data/trace.js"
 );
 
 const problems = [];
@@ -90,7 +95,7 @@ check(
 //    plotted (novelty, similarity) coordinate, must match the label deriveState
 //    gave that turn. A disagreement means a dot sits in a region that
 //    contradicts its own colour, which breaks the chart's entire claim.
-const geom = await import(resolve(HERE, "../src/lib/quadrantGeometry.js"));
+const geom = await importLocal("../src/lib/quadrantGeometry.js");
 const allRows = deriveState(TRACE.length - 1).rows;
 const mismatched = [];
 const outOfBounds = [];
@@ -155,7 +160,7 @@ check(
 // 9. The detector race must report computed results, and those results are the
 //    demo's actual argument. Each one is asserted so a trace edit cannot
 //    silently invert the story the panel tells.
-const bl = await import(resolve(HERE, "../src/lib/baselines.js"));
+const bl = await importLocal("../src/lib/baselines.js");
 const race = bl.runAll(TRACE);
 
 // The loop repeats one byte-identical non-answer, which is exactly what lexical
@@ -200,8 +205,8 @@ if (ablation !== null) {
 }
 
 // 10. Recovery (claim 4) must hold, and must stay out of deriveState.
-const rec = await import(resolve(HERE, "../src/lib/deriveRecovery.js"));
-const epi = await import(resolve(HERE, "../src/data/epilogue.js"));
+const rec = await importLocal("../src/lib/deriveRecovery.js");
+const epi = await importLocal("../src/data/epilogue.js");
 const route = rec.escapeVector();
 
 check(
@@ -428,7 +433,7 @@ for (const f of fixturesDoc.fixtures ?? []) {
 //     shows must be the SAME number the hero reports as tokens saved. Two
 //     panels quoting different savings would be the most damaging kind of
 //     inconsistency on a projector.
-const ung = await import(resolve(HERE, "../src/data/unguarded.js"));
+const ung = await importLocal("../src/data/unguarded.js");
 
 check(
   ung.UNGUARDED_RUN.length === STEP_CAP,

@@ -20,7 +20,7 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = resolve(HERE, "../src");
@@ -66,7 +66,10 @@ const foundAttrs = new Set();
 let taggedNodes = 0;
 
 for (const file of files) {
-  const rel = relative(SRC, file);
+  // Normalised to forward slashes: `relative()` returns `hooks\useLaneReveal.js`
+  // on Windows, which matches nothing in ANIME_OWNERS and made this check report
+  // its two legitimate owners as violations of itself.
+  const rel = relative(SRC, file).split(sep).join("/");
   const src = readFileSync(file, "utf8");
 
   // --- 2. who imports animejs ---
