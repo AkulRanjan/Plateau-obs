@@ -32,10 +32,10 @@
  * and Chrome started with --remote-debugging-port=9222. `npm run visual` starts
  * Chrome itself if it is not already listening.
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = resolve(HERE, "../.visual");
@@ -78,9 +78,21 @@ async function serverUp() {
 let server = null;
 if (!(await serverUp())) {
   const port = new URL(URL_).port || "5173";
+  // Run vite's own entry point on this Node rather than going through `npx`.
+  // On Windows npx is `npx.cmd`: spawn() does not consult PATHEXT, so the bare
+  // name is ENOENT, and naming the .cmd is EINVAL since Node 20 refuses to
+  // spawn batch files without a shell. The JS entry sidesteps both, and pins
+  // the vite that this project installed instead of whatever npx would resolve.
   server = spawn(
-    "npx",
-    ["vite", "--port", port, "--strictPort", "--logLevel", "error"],
+    process.execPath,
+    [
+      resolve(HERE, "../node_modules/vite/bin/vite.js"),
+      "--port",
+      port,
+      "--strictPort",
+      "--logLevel",
+      "error",
+    ],
     { cwd: resolve(HERE, ".."), stdio: "ignore", detached: true }
   );
   server.unref();
@@ -107,13 +119,26 @@ async function chromeUp() {
   }
 }
 
+// Absolute paths are probed; bare names are left for the OS to resolve off
+// PATH. The previous list was POSIX-only and `.find(Boolean)` returned its first
+// element unconditionally, so this always tried to spawn `google-chrome` — which
+// on Windows, where Chrome installs off PATH, could never work.
+const CHROME_CANDIDATES = [
+  `${process.env.PROGRAMFILES || "C:\\Program Files"}\\Google\\Chrome\\Application\\chrome.exe`,
+  `${process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)"}\\Google\\Chrome\\Application\\chrome.exe`,
+  `${process.env.LOCALAPPDATA || ""}\\Google\\Chrome\\Application\\chrome.exe`,
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "google-chrome",
+  "google-chrome-stable",
+  "chromium",
+  "chromium-browser",
+];
+
 let spawned = null;
 if (!(await chromeUp())) {
   const bin =
     process.env.CHROME_BIN ||
-    ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"].find(
-      Boolean
-    );
+    CHROME_CANDIDATES.find((p) => !isAbsolute(p) || existsSync(p));
   spawned = spawn(
     bin,
     [
@@ -134,7 +159,8 @@ if (!(await chromeUp())) {
   if (!(await chromeUp())) {
     console.error(
       `\nvisual CHECK FAILED — could not start Chrome with remote debugging.\n` +
-        `Set CHROME_BIN, or start it yourself:\n` +
+        `Tried: ${bin}\n` +
+        `Set CHROME_BIN to your browser, or start it yourself:\n` +
         `  google-chrome --headless=new --remote-debugging-port=9222 \\\n` +
         `    --user-data-dir=/tmp/plateau-chrome\n`
     );

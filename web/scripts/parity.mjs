@@ -15,10 +15,14 @@
  * Exits non-zero on any divergence.
  */
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+// `import()` takes a URL, not a path. On Windows `resolve()` returns `C:\...`,
+// which the ESM loader rejects as an unsupported `c:` scheme. See contract.mjs.
+const importLocal = (rel) => import(pathToFileURL(resolve(HERE, rel)).href);
 
 // The draft, vendored. It used to be read from an absolute path in one
 // developer's home directory, which meant `npm run verify` -- the single
@@ -78,8 +82,8 @@ const problems = [];
 const note = (m) => problems.push(m);
 
 const original = await loadOriginal();
-const ported = await import(resolve(HERE, "../src/lib/deriveState.js"));
-const portedTrace = await import(resolve(HERE, "../src/data/trace.js"));
+const ported = await importLocal("../src/lib/deriveState.js");
+const portedTrace = await importLocal("../src/data/trace.js");
 
 // --- 1. the constants ------------------------------------------------------
 for (const k of [
