@@ -424,3 +424,42 @@ hf auth login                             # TRAIL is gated; approval is instant
 python scripts/fetch_trail.py
 python scripts/trail_comparison.py        # the only numbers about real agents
 ```
+
+The web console lives in `web/` and has its own checks:
+
+```bash
+cd web
+npm ci
+npm run check                             # parity, contract, ownership, contrast, build, offline
+npm run verify                            # the above plus two headless-Chrome visual checks
+```
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) is the place to start. It states the five
+rules this codebase is governed by — they are cited by number throughout the
+source and were, until recently, written down nowhere — and describes the
+workflow for adding a measurement.
+
+The short version: **the contribution is the script that measures the thing.**
+A number cannot enter a document here unless a script in this repository
+produced it, and `scripts/check_readme.py` fails the build otherwise.
+
+Findings that make this project look worse are welcome, and there is an issue
+template for exactly that. Two sections of this README exist because someone
+went looking for the flaw and found it.
+
+- [Code of conduct](CODE_OF_CONDUCT.md)
+- [Security policy](SECURITY.md) — and note that Plateau is **not** a safety
+  filter; it detects stagnation, not harm
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+## Licence
+
+[Apache-2.0](LICENSE). Third-party components and ported code are credited in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the TRAIL dataset is gated and
+is never redistributed here.
+
+## Citing this
+
+See [CITATION.cff](CITATION.cff), or use GitHub's "Cite this repository" button.
