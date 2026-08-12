@@ -244,8 +244,66 @@ referred to a value no longer in the code. `scripts/novelty_floor_check.py` now
 imports the constant instead of restating it.
 
 The floor is now **0.25**, and the probe reports `candidate_floor_survives:
-true`. Neither sweep discriminates — every floor value is usable in both — so
-this probe is the only measurement with anything to say about it.
+true`. Neither `sweep` nor `long_trace_sweep` discriminates — every floor value
+is usable in both — but that is a property of their range, not of the floor:
+both stop at 0.40. `eval/floor_sweep.py` pushes it to 0.80 and finds the edge.
+
+### Where the floor actually stops working
+
+`metrics.json → floor_sweep`. The same five axes as `long_trace_sweep`, over the
+same 16–61 turn classes, with `novelty_floor` swept to 0.80 — 864 configurations.
+
+| floor | usable configs (of 108) |
+|---|---|
+| 0.20 | 81 |
+| **0.25** | **81** |
+| 0.30 | 81 |
+| 0.40 | 81 |
+| 0.50 | 18 |
+| 0.60, 0.70, 0.80 | **0** |
+
+So the floor *is* load-bearing once you look above 0.40, and the shipped
+configuration — floor 0.25, `trip_after_loop` 3, `trip_after_stall` 6, window 16
+— is usable at every swept `k_sigma`. `metrics.json → floor_sweep_fine` resolves
+the edge at 0.02: usable through **0.48**, nothing usable from **0.50** up.
+
+**The floor and the window are not independent**, which is the part neither
+earlier sweep could see. From `floor_sweep_fine`, holding `trip_after_loop` at
+its committed 3:
+
+| window | usable floors |
+|---|---|
+| 8 | 0.44 – 0.48 |
+| 12 | 0.40 – 0.48 |
+| 16 | 0.40 – 0.46 |
+| 24 | 0.40 – 0.44 |
+
+A short window needs a *higher* floor to see the repetition at all; a long window
+needs a *lower* one, because more history means more chances for healthy work to
+read as stagnant. `long_trace_sweep` reports every `window_size = 8`
+configuration failing, and that is true — across the floors *it* sweeps. Raising
+the floor to 0.44 buys window 8 back. That is not a recommendation to ship a
+window of 8; it is the reason the two parameters have to be quoted together.
+
+### The floor is not a separation margin
+
+`metrics.json → separation_margin`. At the committed floor of 0.25 the healthy
+and stalled novelty distributions do separate — but the number that matters is
+how much room is left, and there is almost none:
+
+| trace | min novelty | distance below floor | longest stagnant run | held by |
+|---|---|---|---|---|
+| `healthy_invoice_batch` | 0.24941 | **0.00059** | 1 (of 6) | counter margin |
+| `healthy_poller` | 0.084191 | 0.165809 | 28 (of 6) | `idempotent` declaration |
+
+The healthy batch's closest turn sits **0.00059 below** the floor — it already
+reads as stagnant. It survives because that happens once in 55 turns and tripping
+needs six *consecutive*. The safety of the design rests on a counter margin of
+five turns, not on a threshold with room in it, and those are different claims.
+
+The poller has no margin at all: a run of 28 against a threshold of 6. It is held
+up entirely by its declaration, which is the same point made under
+`long_trace_comparison` expressed as a quantity.
 
 ## Prior art, as actually read
 
@@ -339,8 +397,8 @@ let a red check train people to ignore it.
 
 | Parameter | Value | Owned by | Status |
 |---|---|---|---|
-| `NOVELTY_FLOOR` | 0.25 | `novelty_floor_probe` | only grid value inside the measured window |
-| `WINDOW_SIZE` | 16 | `long_trace_sweep` | usable set {12, 16, 24}; provisional pending TRAIL |
+| `NOVELTY_FLOOR` | 0.25 | `novelty_floor_probe` | only grid value inside the measured window; `floor_sweep` puts the usable range at 0.20–0.48 and confirms 0.25 |
+| `WINDOW_SIZE` | 16 | `long_trace_sweep` | usable set {12, 16, 24}; provisional pending TRAIL. `floor_sweep` shows the usable floor range narrows as this grows |
 | `K_SIGMA` | 1.0 | `long_trace_sweep` | every swept value usable |
 | `TRIP_AFTER_LOOP` | 3 | `long_trace_sweep` | every swept value usable |
 | `TRIP_AFTER_STALL` | 6 | `long_trace_sweep` | every swept value usable |
@@ -352,10 +410,13 @@ python3.11 -m venv .venv-pinned && . .venv-pinned/bin/activate
 pip install -e '.[dev,demo]'
 python scripts/check_env.py --probe
 
-python -m pytest                          # 162 passed, 2 skipped
+python -m pytest                          # 165 passed, 2 skipped
 python scripts/detector_fixtures.py       # the four §6 fixtures
 python eval/sweep.py                      # 576 configs over the fixtures
 python scripts/long_trace_sweep.py        # 576 configs over 16-61 turn traces
+python eval/floor_sweep.py                # 864 configs, floor swept to 0.80
+python eval/floor_sweep.py --fine         # the same edge resolved at 0.02
+python eval/separation_margin.py          # what the floor's headroom actually is
 python scripts/long_trace_comparison.py   # nine detectors, five classes
 python scripts/check_readme.py            # every figure above traces to a measurement
 
