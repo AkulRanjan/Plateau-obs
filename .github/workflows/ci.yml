@@ -28,8 +28,8 @@ jobs:
     name: Rule 1 — every README figure traces to a measurement
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: python scripts/check_readme.py
@@ -43,30 +43,42 @@ jobs:
         # torch 2.5.1 publishes no wheel for 3.13+, which is the floor and
         # ceiling of what this project can be tested on.
         python-version: ["3.10", "3.11", "3.12"]
-    env:
-      # Scripts pin this to 1 for reproducibility. The suite uses setdefault, so
-      # setting it here lets the encoder weights download once and be cached;
-      # without it, a cold runner fails at model load rather than skipping.
-      HF_HUB_OFFLINE: "0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      # ~90 MB of MiniLM weights. Keyed on the revision pinned in
-      # [tool.plateau], so a re-pin invalidates the cache instead of silently
-      # testing against the old weights.
+      # The pinned MiniLM snapshot, in the layout plateau.encoder expects:
+      # models/ inside the checkout, NOT ~/.cache/huggingface. Keyed on
+      # pyproject.toml because that is where the pinned revision lives, so a
+      # re-pin invalidates the cache instead of silently testing against the
+      # old weights.
       - name: Cache encoder weights
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
-          path: ~/.cache/huggingface
-          key: hf-1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+          path: models
+          key: encoder-${{ hashFiles('pyproject.toml') }}
 
       - name: Install
         run: pip install -e ".[dev,demo]"
+
+      # Download the weights the way a developer does. This is required, not an
+      # optimisation: scripts/detector_fixtures.py sets HF_HUB_OFFLINE=1 at
+      # import, tests/test_detector.py imports it, and MiniLMEncoder defaults to
+      # allow_download=False -- so by the time any test runs, the network is
+      # closed by design. Without a populated models/ the suite cannot load the
+      # encoder at all.
+      #
+      # pin_encoder.py is the only script permitted to touch the network. With
+      # no --repin it fetches exactly the revision pyproject.toml already
+      # commits to, leaves pyproject unchanged, and writes
+      # models/encoder_revision.txt so the run is pinned rather than tracking
+      # whatever upstream main happens to be.
+      - name: Fetch pinned encoder weights
+        run: python scripts/pin_encoder.py
 
       # The demo extra is not optional: tests/test_live_demo.py imports
       # demo.live_agent, so without httpx the suite cannot even be collected.
@@ -86,9 +98,9 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
