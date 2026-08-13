@@ -1,0 +1,105 @@
+# The checks this project already had, run on every push instead of by hand.
+#
+# Deliberately NOT here: the sweeps in eval/ and scripts/. They take minutes,
+# they rewrite metrics.json, and rule 3 says a run is only byte-reproducible on
+# one machine — so a CI runner re-measuring and diffing would report drift as
+# failure on every green build. Measurements are produced locally and committed;
+# CI's job is to check that what was committed still holds together.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Rule 1 gets its own gate. check_readme.py imports nothing outside the
+  # standard library, so this answers "is every number in the README still
+  # backed by a measurement" in seconds, without building torch.
+  rule-1:
+    name: Rule 1 — every README figure traces to a measurement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/check_readme.py
+
+  tests:
+    name: tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # torch 2.5.1 publishes no wheel for 3.13+, which is the floor and
+        # ceiling of what this project can be tested on.
+        python-version: ["3.10", "3.11", "3.12"]
+    env:
+      # Scripts pin this to 1 for reproducibility. The suite uses setdefault, so
+      # setting it here lets the encoder weights download once and be cached;
+      # without it, a cold runner fails at model load rather than skipping.
+      HF_HUB_OFFLINE: "0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      # ~90 MB of MiniLM weights. Keyed on the revision pinned in
+      # [tool.plateau], so a re-pin invalidates the cache instead of silently
+      # testing against the old weights.
+      - name: Cache encoder weights
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+
+      - name: Install
+        run: pip install -e ".[dev,demo]"
+
+      # The demo extra is not optional: tests/test_live_demo.py imports
+      # demo.live_agent, so without httpx the suite cannot even be collected.
+      - name: Tests
+        run: python -m pytest
+
+      - name: Environment / determinism report
+        # Informational. Rule 3 holds per machine, so a CI runner differing from
+        # the development pins is expected and must not fail the build.
+        continue-on-error: true
+        run: python scripts/check_env.py
+
+  web:
+    name: web console
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # ci, not install: every version is pinned without a range and the
+      # lockfile is committed on purpose.
+      - run: npm ci
+
+      # parity, contract, ownership, contrast, render, build, offline.
+      # `npm run verify` additionally drives headless Chrome; it is run locally
+      # rather than here, where a browser check is the least stable thing in the
+      # pipeline and would train people to ignore a red build.
+      - run: npm run check

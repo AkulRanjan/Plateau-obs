@@ -1,0 +1,76 @@
+name: Bug report
+description: Something crashes, or behaves differently from what is documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If you believe a *number* is wrong rather than the code, use the
+        "Measurement dispute" template instead — it asks for different things.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you ran, and what it did.
+      placeholder: |
+        $ python -m pytest
+        ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: >
+        Where possible, point at the line of README.md, a docstring, or a test
+        that says it should behave otherwise.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - plateau/ (detector, calibrator, breaker, encoder)
+        - eval/ (sweeps and trace corpora)
+        - scripts/ (probes, comparisons, repo checks)
+        - tests/
+        - web/ (jury console)
+        - demo/ or examples/
+        - packaging / environment setup
+        - not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >
+        Paste the output of `python scripts/check_env.py`. It reports the
+        interpreter, the virtualenv and every pinned package that differs from
+        the pins — which is usually the answer.
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11 / macOS 15 / Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirms
+    attributes:
+      label: Before submitting
+      options:
+        - label: >
+            I have not pasted any TRAIL data into this issue. It is a gated
+            dataset whose terms forbid resharing (rule 5).
+          required: true

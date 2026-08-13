@@ -1,0 +1,13 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/AkulRanjan/Plateau-obs/security/advisories/new
+    about: >
+      Report privately. Do not open a public issue for a security problem — see
+      SECURITY.md.
+  - name: Question about a result
+    url: https://github.com/AkulRanjan/Plateau-obs/discussions
+    about: >
+      If you are unsure whether a number is wrong or you are reading it wrongly,
+      ask here first. Use the measurement dispute template once you have run
+      something.

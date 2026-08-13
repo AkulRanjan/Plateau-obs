@@ -1,0 +1,76 @@
+name: Measurement dispute
+description: You think a number in this repository is wrong.
+labels: ["measurement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most valuable kind of issue this project can receive. Every
+        claim here is supposed to be falsifiable by re-running a script; this
+        template exists so that a disagreement about a number arrives with
+        enough detail to settle it.
+
+        Findings that make the project look worse are welcome and have their own
+        section of the README.
+
+  - type: input
+    id: key
+    attributes:
+      label: Which metrics.json key
+      description: The top-level block you believe is wrong.
+      placeholder: "long_trace_sweep, floor_sweep, trail_comparison, …"
+    validations:
+      required: true
+
+  - type: input
+    id: figure
+    attributes:
+      label: Which figure
+      description: The specific value, and where it is quoted if it appears in a document.
+      placeholder: "usable_percent 75.0, quoted in README.md line 36"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-you-ran
+    attributes:
+      label: What you ran
+      description: The exact command, so the disagreement can be reproduced.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-you-got
+    attributes:
+      label: What you got instead
+      description: Paste the output, or the differing block from your metrics.json.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >
+        Output of `python scripts/check_env.py`. Rule 3 holds per machine — a
+        differing torch build shifts the last decimal places, and that is a
+        known and documented limit rather than a bug. This field is how we tell
+        the two apart.
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of disagreement is this
+      options:
+        - The script produces a different number than the one committed
+        - The number is right but the document describes it wrongly
+        - The measurement is correct but does not support the claim made from it
+        - The measurement answers a different question than it appears to
+        - Not sure
+    validations:
+      required: true

@@ -1,0 +1,55 @@
+cff-version: 1.2.0
+title: "Plateau: a semantic circuit breaker for autonomous AI agents"
+message: >-
+  If you use this software or refer to its measurements, please cite it using
+  the metadata below.
+type: software
+authors:
+  - given-names: Akul
+    family-names: Ranjan
+    email: akulranjan06@gmail.com
+repository-code: "https://github.com/AkulRanjan/Plateau-obs"
+abstract: >-
+  Plateau detects when an autonomous agent has stopped learning, rather than
+  when it has started repeating itself. Each turn is read on two dials computed
+  from local sentence embeddings: observation novelty against a window of recent
+  observations, and action similarity. Novelty is the trip axis; similarity only
+  sets the evidence bar, which lets a healthy batch job whose actions are nearly
+  identical be distinguished from a stalled agent whose actions keep changing.
+  No LLM API is involved in the decision path. Every figure published with this
+  project is produced by a script in the repository and written to metrics.json,
+  and a check fails the build if a documented number is not backed by a
+  measurement.
+keywords:
+  - autonomous agents
+  - circuit breaker
+  - loop detection
+  - information stagnation
+  - sentence embeddings
+  - agent observability
+license: Apache-2.0
+version: 0.1.0
+date-released: "2026-08-12"
+references:
+  - type: article
+    title: >-
+      TRAIL: Trace Reasoning and Agentic Issue Localization
+    abstract: >-
+      The expert-annotated agent-trace dataset used for this project's only
+      measurements on real agent traces. Gated; never redistributed here.
+    authors:
+      - name: Patronus AI
+    identifiers:
+      - type: other
+        value: "arXiv:2505.08638"
+        description: arXiv preprint identifier
+    url: "https://huggingface.co/datasets/PatronusAI/TRAIL"
+  - type: software
+    title: sentence-transformers/all-MiniLM-L6-v2
+    abstract: >-
+      The sentence embedding model used as published, without fine-tuning. The
+      exact revision is pinned in pyproject.toml under [tool.plateau].
+    authors:
+      - name: Sentence-Transformers
+    license: Apache-2.0
+    url: "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2"
